@@ -271,12 +271,44 @@
     <script>
         let photoData = [];
 
-        // Get photo data from URL parameters or localStorage
+        // Get photo data from URL parameters or localStorage - TABLET/PHONE COMPATIBLE
         function getPhotoData() {
-            // First, try to get from URL parameters (new session-based approach)
             const urlParams = new URLSearchParams(window.location.search);
-            const sessionId = urlParams.get('session');
             
+            // Method 1: Direct photo encoding (tablet → phone via QR)
+            const photoParam = urlParams.get('photos');
+            if (photoParam) {
+                try {
+                    photoData = JSON.parse(decodeURIComponent(photoParam));
+                    console.log('Photos loaded directly from QR code');
+                    return;
+                } catch (e) {
+                    console.log('Could not parse direct photo data:', e);
+                }
+            }
+            
+            // Method 2: Photo ID system (fallback)
+            const photoId = urlParams.get('id');
+            if (photoId) {
+                try {
+                    const storedPhotos = localStorage.getItem(photoId);
+                    if (storedPhotos) {
+                        photoData = JSON.parse(storedPhotos);
+                        console.log('Photos loaded from photo ID:', photoId);
+                        return;
+                    } else {
+                        console.log('No photos found for ID:', photoId);
+                        // Show helpful message for users scanning from different device
+                        showCrossDeviceMessage(photoId);
+                        return;
+                    }
+                } catch (e) {
+                    console.log('Could not parse photo ID data:', e);
+                }
+            }
+            
+            // Method 3: Legacy session system
+            const sessionId = urlParams.get('session');
             if (sessionId) {
                 try {
                     const storedPhotos = localStorage.getItem(sessionId);
@@ -286,27 +318,34 @@
                         return;
                     }
                 } catch (e) {
-                    console.log('Could not parse session photo data');
-                }
-            }
-            
-            // Fallback: try to get from URL parameters (old method)
-            const photoParam = urlParams.get('photos');
-            if (photoParam) {
-                try {
-                    photoData = JSON.parse(decodeURIComponent(photoParam));
-                    console.log('Photos loaded from URL parameters');
-                    return;
-                } catch (e) {
-                    console.log('Could not parse URL photo data');
+                    console.log('Could not parse session data:', e);
                 }
             }
 
-            // If still no data, show placeholder
-            if (!photoData || photoData.length === 0) {
-                console.log('No photo data found, using placeholders');
-                photoData = generatePlaceholderPhotos();
-            }
+            // Fallback: show placeholder
+            console.log('No photo data found, using placeholders');
+            photoData = generatePlaceholderPhotos();
+        }
+
+        // Show message when someone scans QR from different device but photos aren't available
+        function showCrossDeviceMessage(photoId) {
+            document.getElementById('loadingMessage').innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h3 style="color: #654321; margin-bottom: 15px;">Photos Not Found</h3>
+                    <p style="color: #654321; margin-bottom: 10px;">
+                        The photos might be stored on the photo booth device.
+                    </p>
+                    <p style="color: #654321; font-size: 0.9em;">
+                        Photo ID: <code>${photoId}</code>
+                    </p>
+                    <p style="color: #654321; font-size: 0.8em; margin-top: 15px;">
+                        Ask the photo booth operator to help you access your photos!
+                    </p>
+                </div>
+            `;
+            
+            // Still show the gallery container with placeholders
+            photoData = generatePlaceholderPhotos();
         }
 
         // Generate placeholder photos for testing
