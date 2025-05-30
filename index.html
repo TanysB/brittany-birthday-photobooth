@@ -370,8 +370,9 @@
         
         <!-- QR overlay for right white area -->
         <div class="qr-overlay">
-            <div class="qr-title">QR</div>
+            <div class="qr-title">QR Code</div>
             <div id="qrcode" class="qr-code"></div>
+            <div class="qr-subtitle" id="qrSubtitle">Scan to view photos</div>
         </div>
         
         <!-- Clickable area for Done button (invisible overlay) -->
@@ -611,19 +612,37 @@
                 // Store photos in localStorage with the session ID
                 localStorage.setItem(sessionId, JSON.stringify(validPhotos));
                 
-                // Create a simple URL with just the session ID
-                const galleryUrl = `gallery.html?session=${sessionId}`;
+                // For testing locally, show the session ID and instructions
+                const isLocalFile = window.location.protocol === 'file:';
                 
-                console.log('Gallery URL:', galleryUrl);
-                console.log('URL length:', galleryUrl.length);
-                
-                // This URL should be much shorter and work with QR codes
-                const qr = qrcode(0, 'L'); // Use 'L' (Low) error correction for smaller QR codes
-                qr.addData(galleryUrl);
-                qr.make();
-                
-                document.getElementById('qrcode').innerHTML = qr.createImgTag(3, 4); // Smaller QR code
-                console.log('QR code created successfully');
+                if (isLocalFile) {
+                    // Show testing instructions for local development
+                    document.getElementById('qrcode').innerHTML = `
+                        <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center; line-height: 1.3;">
+                            <strong>Local Testing</strong><br>
+                            Session: ${sessionId.slice(-8)}<br>
+                            <small>Photos saved locally!<br>
+                            Open gallery.html manually<br>
+                            to view photos</small>
+                        </div>
+                    `;
+                    document.getElementById('qrSubtitle').textContent = 'Testing mode - no QR needed';
+                } else {
+                    // Create a simple URL with just the session ID
+                    const galleryUrl = `gallery.html?session=${sessionId}`;
+                    
+                    console.log('Gallery URL:', galleryUrl);
+                    console.log('URL length:', galleryUrl.length);
+                    
+                    // This URL should work with QR codes when hosted
+                    const qr = qrcode(0, 'L'); // Use 'L' (Low) error correction for smaller QR codes
+                    qr.addData(galleryUrl);
+                    qr.make();
+                    
+                    document.getElementById('qrcode').innerHTML = qr.createImgTag(3, 4);
+                    document.getElementById('qrSubtitle').textContent = 'Scan to view photos';
+                    console.log('QR code created successfully');
+                }
                 
             } catch (error) {
                 console.error('QR generation error:', error);
