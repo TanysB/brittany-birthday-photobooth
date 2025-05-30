@@ -49,10 +49,10 @@
         /* Camera overlay for white square area - FILTER PAGE */
         .filter-page .camera-overlay {
             position: absolute;
-            top: 8%;
+            top: 15%;
             left: 50%;
             transform: translateX(-49%);
-            width: 44%;
+            width: 66%;
             height: 36.2%;
             overflow: hidden;
             background: white;
@@ -268,22 +268,26 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
-        /* Done button area - clickable area over the done button in your image */
+        /* Done button area - TOUCHSCREEN OPTIMIZED */
         .done-button-area {
             position: absolute;
-            bottom: 20%;
+            bottom: 15%;
             left: 50%;
             transform: translateX(-50%);
-            width: 30%;
-            height: 8%;
+            width: 40%;
+            height: 12%;
             cursor: pointer;
-            /* Debug border - remove this line after testing */
-            /* border: 2px solid red; */
+            /* Touchscreen optimization */
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(255, 0, 0, 0.2);
+            /* Temporary debug border - remove after testing */
+            border: 3px solid rgba(255, 0, 0, 0.5);
+            background: rgba(255, 0, 0, 0.1);
         }
 
-        /* Make Done button more visible for testing */
-        .done-button-area:hover {
-            background: rgba(255, 0, 0, 0.1); /* Slight red tint on hover for testing */
+        .done-button-area:active {
+            background: rgba(255, 0, 0, 0.3);
+            transform: translateX(-50%) scale(0.95);
         }
 
         .hidden {
@@ -382,8 +386,12 @@
             <div class="qr-subtitle" id="qrSubtitle">Scan to view photos</div>
         </div>
         
-        <!-- Clickable area for Done button (invisible overlay) -->
-        <div class="done-button-area" onclick="goToStart()"></div>
+        <!-- Clickable area for Done button (TOUCHSCREEN OPTIMIZED) -->
+        <div class="done-button-area" 
+             onclick="goToStart()" 
+             ontouchstart="this.style.background='rgba(255,0,0,0.4)'"
+             ontouchend="this.style.background='rgba(255,0,0,0.1)'"
+             style="z-index: 1000;"></div>
     </div>
 
     <script>
@@ -437,7 +445,14 @@
         }
 
         function goToStart() {
-            console.log('Done button clicked - returning to start');
+            console.log('=== DONE BUTTON PRESSED ===');
+            
+            // Visual feedback for touchscreen
+            const doneButton = document.querySelector('.done-button-area');
+            if (doneButton) {
+                doneButton.style.background = 'rgba(0, 255, 0, 0.3)';
+                doneButton.style.transform = 'translateX(-50%) scale(0.9)';
+            }
             
             // Auto-download photos for iPad operator before going back to start
             if (capturedPhotos && capturedPhotos.length > 0) {
@@ -449,12 +464,13 @@
                 }
             }
             
-            // Reset and go back to start
-            showPage('startPage');
-            capturedPhotos = [];
-            
-            // Clear any old photo sessions from localStorage to free up space
-            clearOldPhotoSessions();
+            // Small delay for visual feedback, then reset
+            setTimeout(() => {
+                showPage('startPage');
+                capturedPhotos = [];
+                clearOldPhotoSessions();
+                console.log('Returned to start page');
+            }, 300);
         }
 
         // Download photos automatically for the iPad operator
@@ -614,47 +630,113 @@
             }
         }
 
-        // Show results - FIXED VERSION
+        // Show results - TOUCHSCREEN & QR FIXED VERSION
         function showResults() {
-            console.log('Showing results page...');
+            console.log('=== SHOWING RESULTS PAGE ===');
             
             try {
-                // Display photos in strip
+                // Display photos in strip first
                 console.log('Displaying photos in strip...');
                 capturedPhotos.forEach((photoData, index) => {
                     if (photoData) {
                         const photoSlot = document.getElementById(`photo${index + 1}`);
-                        const img = document.createElement('img');
-                        img.src = photoData;
-                        img.className = 'strip-photo';
-                        img.alt = `Photo ${index + 1}`;
-                        photoSlot.innerHTML = '';
-                        photoSlot.appendChild(img);
-                        console.log(`Photo ${index + 1} displayed`);
+                        if (photoSlot) {
+                            const img = document.createElement('img');
+                            img.src = photoData;
+                            img.className = 'strip-photo';
+                            img.alt = `Photo ${index + 1}`;
+                            photoSlot.innerHTML = '';
+                            photoSlot.appendChild(img);
+                            console.log(`Photo ${index + 1} displayed successfully`);
+                        }
                     }
                 });
                 
-                // Generate QR code with timeout protection
-                console.log('Generating QR code...');
-                setTimeout(() => {
-                    try {
-                        generateQRCode();
-                        console.log('QR code generated successfully');
-                    } catch (qrError) {
-                        console.error('QR code generation failed:', qrError);
-                        // Show fallback QR content
-                        document.getElementById('qrcode').innerHTML = '<div style="color: white; padding: 10px;">QR generation failed</div>';
-                    }
-                }, 100);
-                
-                // Show the result page
+                // Show the result page immediately
                 console.log('Switching to result page...');
                 showPage('resultPage');
                 
+                // Generate QR code with a delay to ensure page is loaded
+                console.log('Generating QR code...');
+                setTimeout(() => {
+                    generateQRCodeWithFallback();
+                }, 500);
+                
             } catch (error) {
                 console.error('Error in showResults:', error);
-                // Fallback - still show the page even if there are errors
+                // Still show the page even if there are errors
                 showPage('resultPage');
+            }
+        }
+
+        // Generate QR code with multiple fallback methods
+        function generateQRCodeWithFallback() {
+            console.log('=== QR CODE GENERATION START ===');
+            
+            const qrContainer = document.getElementById('qrcode');
+            if (!qrContainer) {
+                console.error('QR container not found!');
+                return;
+            }
+            
+            // Show loading message first
+            qrContainer.innerHTML = '<div style="color: white; padding: 10px; font-size: 0.8em;">Generating QR...</div>';
+            
+            try {
+                const validPhotos = capturedPhotos.filter(photo => photo !== null);
+                console.log('Valid photos count:', validPhotos.length);
+                
+                if (validPhotos.length === 0) {
+                    qrContainer.innerHTML = '<div style="color: white; padding: 10px; font-size: 0.8em;">No photos found</div>';
+                    return;
+                }
+                
+                // Method 1: Simple QR with session ID (most reliable)
+                const sessionId = 'session_' + Date.now();
+                console.log('Creating session ID:', sessionId);
+                
+                // Store photos in localStorage
+                try {
+                    localStorage.setItem(sessionId, JSON.stringify(validPhotos));
+                    console.log('Photos stored in localStorage');
+                } catch (storageError) {
+                    console.error('localStorage failed:', storageError);
+                }
+                
+                // Create simple QR code
+                const qrUrl = `gallery.html?session=${sessionId}`;
+                console.log('QR URL:', qrUrl);
+                
+                try {
+                    const qr = qrcode(0, 'L'); // Low error correction for simplicity
+                    qr.addData(qrUrl);
+                    qr.make();
+                    
+                    const qrImage = qr.createImgTag(4, 8); // Larger QR for easier scanning
+                    qrContainer.innerHTML = qrImage;
+                    
+                    console.log('✅ QR CODE GENERATED SUCCESSFULLY!');
+                    
+                    // Update subtitle
+                    const subtitle = document.getElementById('qrSubtitle');
+                    if (subtitle) {
+                        subtitle.textContent = 'Scan to view photos!';
+                    }
+                    
+                } catch (qrError) {
+                    console.error('QR generation failed:', qrError);
+                    qrContainer.innerHTML = `
+                        <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">
+                            <strong>QR Failed</strong><br>
+                            Photos saved locally<br>
+                            ID: ${sessionId.slice(-8)}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('QR generation error:', error);
+                qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">Photos captured!<br>Check iPad downloads</div>';
             }
         }
 
