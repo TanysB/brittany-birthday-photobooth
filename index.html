@@ -277,6 +277,13 @@
             width: 30%;
             height: 8%;
             cursor: pointer;
+            /* Debug border - remove this line after testing */
+            /* border: 2px solid red; */
+        }
+
+        /* Make Done button more visible for testing */
+        .done-button-area:hover {
+            background: rgba(255, 0, 0, 0.1); /* Slight red tint on hover for testing */
         }
 
         .hidden {
@@ -430,8 +437,65 @@
         }
 
         function goToStart() {
+            console.log('Done button clicked - returning to start');
+            
+            // Auto-download photos for iPad operator before going back to start
+            if (capturedPhotos && capturedPhotos.length > 0) {
+                try {
+                    console.log('Auto-downloading photos for iPad operator...');
+                    downloadPhotosForOperator();
+                } catch (error) {
+                    console.error('Auto-download failed:', error);
+                }
+            }
+            
+            // Reset and go back to start
             showPage('startPage');
             capturedPhotos = [];
+            
+            // Clear any old photo sessions from localStorage to free up space
+            clearOldPhotoSessions();
+        }
+
+        // Download photos automatically for the iPad operator
+        function downloadPhotosForOperator() {
+            console.log('Creating download for operator...');
+            
+            capturedPhotos.forEach((photo, index) => {
+                if (photo) {
+                    const link = document.createElement('a');
+                    link.download = `Brittany_Birthday_Photo_${index + 1}_${Date.now()}.png`;
+                    link.href = photo;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Small delay between downloads
+                    setTimeout(() => {}, 100);
+                }
+            });
+            
+            console.log('Auto-download completed');
+        }
+
+        // Clear old photo sessions to prevent localStorage from getting full
+        function clearOldPhotoSessions() {
+            try {
+                const keys = Object.keys(localStorage);
+                const photoKeys = keys.filter(key => key.startsWith('photos_') || key.startsWith('session_'));
+                
+                // Keep only the 5 most recent sessions
+                if (photoKeys.length > 5) {
+                    const sortedKeys = photoKeys.sort().slice(0, -5);
+                    sortedKeys.forEach(key => {
+                        localStorage.removeItem(key);
+                        console.log('Removed old session:', key);
+                    });
+                }
+            } catch (error) {
+                console.log('Could not clear old sessions:', error);
+            }
         }
 
         // Set filter
