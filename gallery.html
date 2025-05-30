@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brittany's 22nd Birthday - Photo Gallery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #F5DEB3, #DEB887);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gallery-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+            background-image: url('album.png');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            aspect-ratio: 1/2.5;
+            margin-bottom: 30px;
+        }
+
+        /* Photo overlays positioned exactly in the white rectangles of album.png */
+        .photo-overlay {
+            position: absolute;
+            overflow: hidden;
+        }
+
+        /* Top photo - positioned in first white rectangle */
+        .photo-1 {
+            top: 2.5%;
+            left: 8.9%;
+            width: 82%;
+            height: 24%;
+        }
+
+        /* Middle photo - positioned in second white rectangle */
+        .photo-2 {
+            top: 28.5%;
+            left: 8.9%;
+            width: 82%;
+            height: 24%;
+        }
+
+        /* Bottom photo - positioned in third white rectangle */
+        .photo-3 {
+            top: 54.5%;
+            left: 8.9%;
+            width: 82.2%;
+            height: 24%;
+        }
+
+        .gallery-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Save button - classy cursive design */
+        .save-button {
+            background: linear-gradient(135deg, #654321, #4a2c1a, #3e2415);
+            color: #d4b896;
+            border: none;
+            padding: 20px 45px;
+            border-radius: 50px;
+            font-size: 1.4em;
+            font-weight: normal;
+            font-family: 'Brush Script MT', cursive, 'Georgia', serif;
+            font-style: italic;
+            cursor: pointer;
+            box-shadow: 
+                0 8px 25px rgba(52, 36, 21, 0.5),
+                0 4px 12px rgba(0, 0, 0, 0.4),
+                inset 0 2px 0 rgba(212, 184, 150, 0.2);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #8B4513;
+            letter-spacing: 2px;
+            min-width: 280px;
+            backdrop-filter: blur(10px);
+        }
+
+        .save-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(212, 184, 150, 0.3), transparent);
+            transition: left 0.7s;
+        }
+
+        .save-button:hover {
+            background: linear-gradient(135deg, #7d5436, #5a3422, #4a2c1a);
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 
+                0 12px 35px rgba(52, 36, 21, 0.6),
+                0 8px 20px rgba(0, 0, 0, 0.5),
+                inset 0 2px 0 rgba(212, 184, 150, 0.3);
+            color: #e6d4b8;
+        }
+
+        .save-button:hover::before {
+            left: 100%;
+        }
+
+        .save-button:active {
+            transform: translateY(-1px) scale(1.01);
+            box-shadow: 
+                0 6px 20px rgba(52, 36, 21, 0.5),
+                0 3px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .button-text {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Loading message */
+        .loading-message {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #654321;
+            font-size: 1.3em;
+            font-style: italic;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px 30px;
+            border-radius: 25px;
+            border: 3px solid #654321;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Page title */
+        .page-title {
+            display: none;
+        }
+
+        /* Success message */
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #32CD32, #228B22, #006400);
+            color: white;
+            padding: 25px 45px;
+            border-radius: 25px;
+            font-size: 1.4em;
+            font-weight: bold;
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.4),
+                0 8px 20px rgba(50, 205, 50, 0.3);
+            z-index: 1000;
+            display: none;
+            text-align: center;
+            border: 3px solid white;
+            backdrop-filter: blur(10px);
+            animation: successPulse 0.6s ease-out;
+        }
+
+        @keyframes successPulse {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .gallery-container {
+                max-width: 320px;
+            }
+            
+            .save-button {
+                padding: 18px 40px;
+                font-size: 1.3em;
+                min-width: 260px;
+            }
+            
+            .page-title {
+                font-size: 1.7em;
+                padding: 12px 20px;
+            }
+            
+            .loading-message {
+                font-size: 1.2em;
+                padding: 18px 25px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .gallery-container {
+                max-width: 300px;
+            }
+            
+            .save-button {
+                padding: 16px 35px;
+                font-size: 1.2em;
+                min-width: 240px;
+            }
+            
+            .page-title {
+                font-size: 1.5em;
+                padding: 10px 18px;
+            }
+            
+            .loading-message {
+                font-size: 1.1em;
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-message" id="loadingMessage">
+        Loading your amazing photos...
+    </div>
+
+    <div class="gallery-container" id="galleryContainer">
+        <!-- Photo overlays positioned exactly in the white rectangles -->
+        <div class="photo-overlay photo-1" id="photoSlot1">
+            <!-- Photo 1 will be inserted here -->
+        </div>
+        <div class="photo-overlay photo-2" id="photoSlot2">
+            <!-- Photo 2 will be inserted here -->
+        </div>
+        <div class="photo-overlay photo-3" id="photoSlot3">
+            <!-- Photo 3 will be inserted here -->
+        </div>
+    </div>
+    
+    <!-- Save to Gallery Button -->
+    <button class="save-button" onclick="saveToGallery()">
+        <span class="button-text">Save to Gallery</span>
+    </button>
+
+    <!-- Success message -->
+    <div class="success-message" id="successMessage">
+        Photos saved successfully!<br>
+        <small style="font-size: 0.8em; margin-top: 8px; display: block;">Check your downloads folder!</small>
+    </div>
+
+    <script>
+        let photoData = [];
+
+        // Get photo data from URL parameters or localStorage
+        function getPhotoData() {
+            // First, try to get from URL parameters (new session-based approach)
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session');
+            
+            if (sessionId) {
+                try {
+                    const storedPhotos = localStorage.getItem(sessionId);
+                    if (storedPhotos) {
+                        photoData = JSON.parse(storedPhotos);
+                        console.log('Photos loaded from session:', sessionId);
+                        return;
+                    }
+                } catch (e) {
+                    console.log('Could not parse session photo data');
+                }
+            }
+            
+            // Fallback: try to get from URL parameters (old method)
+            const photoParam = urlParams.get('photos');
+            if (photoParam) {
+                try {
+                    photoData = JSON.parse(decodeURIComponent(photoParam));
+                    console.log('Photos loaded from URL parameters');
+                    return;
+                } catch (e) {
+                    console.log('Could not parse URL photo data');
+                }
+            }
+
+            // If still no data, show placeholder
+            if (!photoData || photoData.length === 0) {
+                console.log('No photo data found, using placeholders');
+                photoData = generatePlaceholderPhotos();
+            }
+        }
+
+        // Generate placeholder photos for testing
+        function generatePlaceholderPhotos() {
+            const placeholders = [];
+            for (let i = 0; i < 3; i++) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 400;
+                canvas.height = 300;
+                
+                // Create a gradient background
+                const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+                gradient.addColorStop(0, '#F5DEB3');
+                gradient.addColorStop(1, '#DEB887');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 400, 300);
+                
+                // Add text
+                ctx.fillStyle = '#654321';
+                ctx.font = 'bold 48px Georgia';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Photo ${i + 1}`, 200, 120);
+                ctx.font = '24px Georgia';
+                ctx.fillText("Brittany's 22nd BDAY", 200, 160);
+                ctx.fillText('🤠 Mexican Western 🌵', 200, 200);
+                
+                placeholders.push(canvas.toDataURL('image/png'));
+            }
+            return placeholders;
+        }
+
+        // Display photos in the gallery
+        function displayPhotos() {
+            photoData.forEach((photo, index) => {
+                const photoSlot = document.getElementById(`photoSlot${index + 1}`);
+                if (photoSlot && photo) {
+                    const img = document.createElement('img');
+                    img.src = photo;
+                    img.className = 'gallery-photo';
+                    img.alt = `Photo ${index + 1}`;
+                    photoSlot.appendChild(img);
+                }
+            });
+
+            // Hide loading message
+            const loadingMsg = document.getElementById('loadingMessage');
+            if (loadingMsg) {
+                loadingMsg.style.display = 'none';
+            }
+        }
+
+        // Save photos to device gallery - captures the exact display
+        async function saveToGallery() {
+            console.log('Save to gallery clicked');
+            
+            // Add visual feedback that processing is happening
+            const saveButton = document.querySelector('.save-button');
+            const originalText = saveButton.innerHTML;
+            saveButton.innerHTML = '<span class="button-text">Processing...</span>';
+            saveButton.disabled = true;
+            
+            try {
+                // Capture the gallery as it appears on screen
+                await captureGalleryDisplay();
+
+                // Show success message
+                showSuccessMessage();
+
+            } catch (error) {
+                console.error('Error saving photos:', error);
+                alert('Sorry, there was an error saving your photos. Please try again.');
+            } finally {
+                // Restore button
+                saveButton.innerHTML = originalText;
+                saveButton.disabled = false;
+            }
+        }
+
+        // Capture the gallery exactly as displayed with album background and positioned photos
+        async function captureGalleryDisplay() {
+            console.log('Starting gallery capture...');
+            
+            const galleryContainer = document.getElementById('galleryContainer');
+            const containerRect = galleryContainer.getBoundingClientRect();
+            
+            // Create a canvas with the same dimensions as the gallery container
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size to match the gallery container (reduced scale to prevent freezing)
+            const scale = 2; // Reduced from 3 to prevent performance issues
+            canvas.width = containerRect.width * scale;
+            canvas.height = containerRect.height * scale;
+            ctx.scale(scale, scale);
+            
+            try {
+                console.log('Loading album background...');
+                // Load and draw the actual album.png background
+                const albumBackground = await createAlbumBackground(containerRect.width, containerRect.height);
+                ctx.drawImage(albumBackground, 0, 0, containerRect.width, containerRect.height);
+                console.log('Album background loaded successfully');
+                
+                // Draw each captured photo sequentially instead of all at once
+                console.log('Drawing photos...');
+                for (let i = 1; i <= 3; i++) {
+                    const photoSlot = document.getElementById(`photoSlot${i}`);
+                    const img = photoSlot.querySelector('.gallery-photo');
+                    
+                    if (img && img.src && photoData[i-1]) {
+                        console.log(`Drawing photo ${i}...`);
+                        await drawPhotoToCanvas(ctx, photoData[i-1], photoSlot, galleryContainer);
+                        console.log(`Photo ${i} drawn successfully`);
+                        
+                        // Small delay to prevent browser from freezing
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
+                
+                console.log('All photos drawn, generating download...');
+                
+                // Download the captured gallery with album.png background and real photos
+                const link = document.createElement('a');
+                link.download = 'Brittany_22nd_BDAY_Gallery.png';
+                link.href = canvas.toDataURL('image/png', 0.9); // Reduced quality slightly
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                console.log('Download initiated successfully');
+                
+            } catch (error) {
+                console.error('Error in captureGalleryDisplay:', error);
+                throw error;
+            }
+        }
+
+        // Load the actual album.png background
+        async function createAlbumBackground(width, height) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Draw the album.png background to fill the canvas
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas);
+                };
+                img.onerror = () => {
+                    // Fallback if album.png can't be loaded
+                    console.log('Could not load album.png, using fallback background');
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Create a simple fallback background
+                    const gradient = ctx.createLinearGradient(0, 0, width, height);
+                    gradient.addColorStop(0, '#8B4513');
+                    gradient.addColorStop(1, '#D2B48C');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    resolve(canvas);
+                };
+                img.src = 'album.png'; // Load the actual album.png file
+            });
+        }
+
+        // Draw photo to canvas at exact position using original photo data
+        function drawPhotoToCanvas(ctx, photoSrc, photoSlot, galleryContainer) {
+            return new Promise((resolve, reject) => {
+                const tempImg = new Image();
+                
+                // Set a timeout to prevent hanging
+                const timeout = setTimeout(() => {
+                    console.log('Photo loading timed out');
+                    reject(new Error('Photo loading timeout'));
+                }, 5000); // 5 second timeout
+                
+                tempImg.onload = () => {
+                    clearTimeout(timeout);
+                    try {
+                        const slotRect = photoSlot.getBoundingClientRect();
+                        const containerRect = galleryContainer.getBoundingClientRect();
+                        
+                        // Calculate relative position within the container (matching CSS percentages)
+                        const x = (slotRect.left - containerRect.left);
+                        const y = (slotRect.top - containerRect.top);
+                        const width = slotRect.width;
+                        const height = slotRect.height;
+                        
+                        // Draw the high-quality original image at the exact position
+                        ctx.drawImage(tempImg, x, y, width, height);
+                        console.log('Photo drawn to canvas successfully');
+                        resolve();
+                    } catch (error) {
+                        console.error('Error drawing image to canvas:', error);
+                        resolve(); // Continue even if drawing fails
+                    }
+                };
+                
+                tempImg.onerror = (error) => {
+                    clearTimeout(timeout);
+                    console.log('Could not load photo for canvas:', error);
+                    resolve(); // Continue even if image fails
+                };
+                
+                // Use the original photo data for better quality
+                tempImg.src = photoSrc;
+            });
+        }
+
+        // Show success message
+        function showSuccessMessage() {
+            const successMsg = document.getElementById('successMessage');
+            successMsg.style.display = 'block';
+            
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        // Initialize the gallery
+        window.addEventListener('load', () => {
+            getPhotoData();
+            displayPhotos();
+        });
+    </script>
+</body>
+</html>
