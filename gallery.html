@@ -271,6 +271,47 @@
         <span class="button-text">Save to Gallery</span>
     </button>
 
+    <!-- On-Screen Debug Display -->
+    <div id="debugDisplay" style="
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0,0,0,0.9);
+        color: white;
+        padding: 10px;
+        border-radius: 10px;
+        font-family: monospace;
+        font-size: 11px;
+        max-width: 90vw;
+        max-height: 50vh;
+        overflow-y: auto;
+        z-index: 9999;
+        display: none;
+    ">
+        <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">
+            📱 iPad Debug Console
+            <button onclick="document.getElementById('debugDisplay').style.display='none'" 
+                    style="float: right; background: red; color: white; border: none; padding: 2px 8px; border-radius: 3px;">✖</button>
+        </div>
+        <div id="debugContent"></div>
+    </div>
+
+    <!-- Debug Toggle Button -->
+    <button onclick="toggleDebug()" style="
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        background: #333;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 50%;
+        font-size: 16px;
+        z-index: 9998;
+        width: 50px;
+        height: 50px;
+    ">🐛</button>
+
     <!-- Success message -->
     <div class="success-message" id="successMessage">
         Photos saved successfully!<br>
@@ -278,152 +319,205 @@
     </div>
 
     <script>
-        let photoData = [];
-        let sessionData = null;
+        let debugMessages = [];
 
-        // Enhanced logging function
-        function log(message, type = 'info') {
+        // Enhanced logging function that shows on screen
+        function debugLog(message, type = 'info') {
             console.log(`[${type.toUpperCase()}] ${message}`);
             
-            // Show debug info in UI for troubleshooting
-            const debugDiv = document.getElementById('debugInfo');
-            const timestamp = new Date().toLocaleTimeString();
-            debugDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
-            debugDiv.style.display = 'block';
+            // Add to debug messages array
+            debugMessages.push({
+                time: new Date().toLocaleTimeString(),
+                type: type,
+                message: message
+            });
+            
+            // Keep only last 50 messages
+            if (debugMessages.length > 50) {
+                debugMessages = debugMessages.slice(-50);
+            }
+            
+            // Update on-screen debug display
+            updateDebugDisplay();
+        }
+
+        // Update the on-screen debug display
+        function updateDebugDisplay() {
+            const debugContent = document.getElementById('debugContent');
+            if (debugContent) {
+                debugContent.innerHTML = debugMessages.map(msg => {
+                    const color = msg.type === 'error' ? '#ff6b6b' : 
+                                 msg.type === 'success' ? '#51cf66' : 
+                                 msg.type === 'warning' ? '#ffd43b' : '#74c0fc';
+                    
+                    return `<div style="color: ${color}; margin: 2px 0; font-size: 10px;">
+                        [${msg.time}] ${msg.message}
+                    </div>`;
+                }).join('');
+                
+                // Auto-scroll to bottom
+                debugContent.scrollTop = debugContent.scrollHeight;
+            }
+        }
+
+        // Toggle debug display
+        function toggleDebug() {
+            const debugDisplay = document.getElementById('debugDisplay');
+            if (debugDisplay.style.display === 'none') {
+                debugDisplay.style.display = 'block';
+                debugLog('Debug display opened', 'info');
+            } else {
+                debugDisplay.style.display = 'none';
+            }
+        }
+
+        let photoData = [];
+        let sessionData = null;
+        let debugMessages = [];
+
+        // Enhanced logging function that shows on screen
+        function debugLog(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            
+            // Add to debug messages array
+            debugMessages.push({
+                time: new Date().toLocaleTimeString(),
+                type: type,
+                message: message
+            });
+            
+            // Keep only last 50 messages
+            if (debugMessages.length > 50) {
+                debugMessages = debugMessages.slice(-50);
+            }
+            
+            // Update on-screen debug display
+            updateDebugDisplay();
+        }
+
+        // Update the on-screen debug display
+        function updateDebugDisplay() {
+            const debugContent = document.getElementById('debugContent');
+            if (debugContent) {
+                debugContent.innerHTML = debugMessages.map(msg => {
+                    const color = msg.type === 'error' ? '#ff6b6b' : 
+                                 msg.type === 'success' ? '#51cf66' : 
+                                 msg.type === 'warning' ? '#ffd43b' : '#74c0fc';
+                    
+                    return `<div style="color: ${color}; margin: 2px 0; font-size: 10px;">
+                        [${msg.time}] ${msg.message}
+                    </div>`;
+                }).join('');
+                
+                // Auto-scroll to bottom
+                debugContent.scrollTop = debugContent.scrollHeight;
+            }
+        }
+
+        // Toggle debug display
+        function toggleDebug() {
+            const debugDisplay = document.getElementById('debugDisplay');
+            if (debugDisplay.style.display === 'none') {
+                debugDisplay.style.display = 'block';
+                debugLog('Debug display opened', 'info');
+            } else {
+                debugDisplay.style.display = 'none';
+            }
         }
 
         // Get photo data from URL parameters or localStorage
         function getPhotoData() {
-            console.log('=== PHOTO DATA RETRIEVAL DEBUG ===');
+            debugLog('=== PHOTO DATA RETRIEVAL START ===', 'info');
             
             // Get session ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('session');
             
-            console.log('🔍 Session ID from URL:', sessionId);
-            console.log('🔗 Full URL:', window.location.href);
+            debugLog(`Session ID from URL: ${sessionId}`, 'info');
+            debugLog(`Full URL: ${window.location.href}`, 'info');
             
             // Show ALL localStorage contents for debugging
-            console.log('📦 ALL localStorage contents:');
+            debugLog('📦 Checking localStorage contents...', 'info');
             const allStorageKeys = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 const value = localStorage.getItem(key);
                 allStorageKeys.push(key);
-                console.log(`  • ${key}: ${value ? `${value.length} chars` : 'null'}`);
-                
-                // Log sample of the data for debugging
-                if (value && value.length > 100) {
-                    console.log(`    Sample: ${value.substring(0, 100)}...`);
-                }
+                debugLog(`Storage key: ${key} (${value ? `${value.length} chars` : 'null'})`, 'info');
             }
             
             // METHOD 1: Try exact session match first
             if (sessionId) {
-                console.log(`🎯 METHOD 1: Looking for exact match: "${sessionId}"`);
+                debugLog(`🎯 METHOD 1: Looking for exact match: "${sessionId}"`, 'info');
                 const storedData = localStorage.getItem(sessionId);
                 
                 if (storedData) {
                     try {
                         sessionData = JSON.parse(storedData);
                         photoData = sessionData.photos || [];
-                        console.log(`✅ EXACT MATCH FOUND! ${photoData.length} photos`);
-                        console.log(`📊 Session details: filter=${sessionData.filter}, date=${sessionData.date}`);
+                        debugLog(`✅ EXACT MATCH FOUND! ${photoData.length} photos`, 'success');
+                        debugLog(`Session details: filter=${sessionData.filter}, date=${sessionData.date}`, 'info');
                         return true;
                     } catch (e) {
-                        console.log(`❌ Error parsing exact match: ${e.message}`);
+                        debugLog(`❌ Error parsing exact match: ${e.message}`, 'error');
                     }
                 } else {
-                    console.log(`❌ No exact match found for "${sessionId}"`);
+                    debugLog(`❌ No exact match found for "${sessionId}"`, 'warning');
                 }
             }
             
             // METHOD 2: Try all session keys that start with 'session_'
-            console.log('🔄 METHOD 2: Searching all session_ keys...');
+            debugLog('🔄 METHOD 2: Searching all session_ keys...', 'info');
             const sessionKeys = allStorageKeys.filter(key => key.startsWith('session_'));
-            console.log(`Found ${sessionKeys.length} session keys:`, sessionKeys);
+            debugLog(`Found ${sessionKeys.length} session keys: ${sessionKeys.join(', ')}`, 'info');
             
             // Try each session key
             for (const key of sessionKeys) {
-                console.log(`🧪 Trying session key: "${key}"`);
+                debugLog(`🧪 Trying session key: "${key}"`, 'info');
                 try {
                     const data = localStorage.getItem(key);
                     if (data) {
                         const parsed = JSON.parse(data);
                         if (parsed.photos && parsed.photos.length > 0) {
-                            console.log(`✅ FOUND PHOTOS in "${key}"! ${parsed.photos.length} photos`);
+                            debugLog(`✅ FOUND PHOTOS in "${key}"! ${parsed.photos.length} photos`, 'success');
                             sessionData = parsed;
                             photoData = parsed.photos;
                             return true;
                         } else {
-                            console.log(`  ❌ No photos in "${key}" (has ${Object.keys(parsed).join(', ')})`);
+                            debugLog(`No photos in "${key}" (has ${Object.keys(parsed).join(', ')})`, 'warning');
                         }
                     }
                 } catch (e) {
-                    console.log(`  ❌ Could not parse "${key}": ${e.message}`);
+                    debugLog(`Could not parse "${key}": ${e.message}`, 'error');
                 }
             }
             
             // METHOD 3: Try keys starting with 'photos_'
-            console.log('🔄 METHOD 3: Searching photos_ keys...');
+            debugLog('🔄 METHOD 3: Searching photos_ keys...', 'info');
             const photoKeys = allStorageKeys.filter(key => key.startsWith('photos_'));
-            console.log(`Found ${photoKeys.length} photo keys:`, photoKeys);
+            debugLog(`Found ${photoKeys.length} photo keys: ${photoKeys.join(', ')}`, 'info');
             
             for (const key of photoKeys) {
-                console.log(`🧪 Trying photo key: "${key}"`);
+                debugLog(`🧪 Trying photo key: "${key}"`, 'info');
                 try {
                     const data = localStorage.getItem(key);
                     if (data) {
                         const parsed = JSON.parse(data);
                         if (parsed.photos && parsed.photos.length > 0) {
-                            console.log(`✅ FOUND PHOTOS in "${key}"! ${parsed.photos.length} photos`);
+                            debugLog(`✅ FOUND PHOTOS in "${key}"! ${parsed.photos.length} photos`, 'success');
                             sessionData = parsed;
                             photoData = parsed.photos;
                             return true;
                         }
                     }
                 } catch (e) {
-                    console.log(`  ❌ Could not parse "${key}": ${e.message}`);
-                }
-            }
-            
-            // METHOD 4: Check for any keys that might contain photo data
-            console.log('🔄 METHOD 4: Searching all keys for photo data...');
-            for (const key of allStorageKeys) {
-                try {
-                    const data = localStorage.getItem(key);
-                    if (data && data.includes('data:image/')) {
-                        console.log(`📸 Found image data in key: "${key}"`);
-                        
-                        // If it's a direct image, try to use it
-                        if (data.startsWith('data:image/')) {
-                            console.log(`✅ Using direct image from "${key}"`);
-                            photoData = [data]; // Single photo
-                            sessionData = { photos: [data], filter: 'none', date: 'Unknown' };
-                            return true;
-                        }
-                        
-                        // If it's JSON with photos
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.photos) {
-                                console.log(`✅ Found photos in JSON from "${key}"`);
-                                photoData = parsed.photos;
-                                sessionData = parsed;
-                                return true;
-                            }
-                        } catch (e) {
-                            // Not JSON, skip
-                        }
-                    }
-                } catch (e) {
-                    // Skip invalid entries
+                    debugLog(`Could not parse "${key}": ${e.message}`, 'error');
                 }
             }
             
             // METHOD 5: Use the most recent session regardless of ID match
             if (sessionKeys.length > 0) {
-                console.log('🔄 METHOD 5: Using most recent session as last resort...');
+                debugLog('🔄 METHOD 5: Using most recent session as last resort...', 'warning');
                 
                 // Sort by timestamp (extract from session_TIMESTAMP format)
                 const sortedSessions = sessionKeys.sort((a, b) => {
@@ -432,31 +526,27 @@
                     return timestampB - timestampA; // Newest first
                 });
                 
-                console.log('Sessions sorted by timestamp:', sortedSessions);
+                debugLog(`Sessions sorted by timestamp: ${sortedSessions.join(', ')}`, 'info');
                 
                 const mostRecentKey = sortedSessions[0];
-                console.log(`🔄 Trying most recent session: ${mostRecentKey}`);
+                debugLog(`🔄 Trying most recent session: ${mostRecentKey}`, 'info');
                 
                 try {
                     const fallbackData = localStorage.getItem(mostRecentKey);
                     if (fallbackData) {
                         sessionData = JSON.parse(fallbackData);
                         photoData = sessionData.photos || [];
-                        console.log(`✅ FALLBACK SUCCESS: Found ${photoData.length} photos in ${mostRecentKey}`);
-                        console.log(`⚠️ Note: Using fallback session instead of requested ${sessionId}`);
+                        debugLog(`✅ FALLBACK SUCCESS: Found ${photoData.length} photos in ${mostRecentKey}`, 'success');
+                        debugLog(`⚠️ Note: Using fallback session instead of requested ${sessionId}`, 'warning');
                         return true;
                     }
                 } catch (e) {
-                    console.log(`❌ Fallback failed: ${e.message}`);
+                    debugLog(`❌ Fallback failed: ${e.message}`, 'error');
                 }
             }
             
-            console.log('❌ NO PHOTO DATA FOUND ANYWHERE');
-            console.log('📊 Summary:');
-            console.log(`  - Total localStorage keys: ${allStorageKeys.length}`);
-            console.log(`  - Session keys found: ${sessionKeys.length}`);
-            console.log(`  - Photo keys found: ${photoKeys.length}`);
-            console.log(`  - Requested session: ${sessionId || 'None'}`);
+            debugLog('❌ NO PHOTO DATA FOUND ANYWHERE', 'error');
+            debugLog(`Summary: ${allStorageKeys.length} total keys, ${sessionKeys.length} session keys, ${photoKeys.length} photo keys`, 'info');
             
             return false;
         }
@@ -515,14 +605,14 @@
 
         // Display photos in the gallery - ALWAYS shows something
         function displayPhotos() {
-            console.log('=== DISPLAYING PHOTOS ===');
+            debugLog('=== DISPLAYING PHOTOS ===', 'info');
             
             // Try to get real photos
             const hasRealPhotos = getPhotoData();
             
             // Show what we found
             if (hasRealPhotos && photoData && photoData.length > 0) {
-                console.log(`✅ Found ${photoData.length} real photos, displaying them`);
+                debugLog(`✅ Found ${photoData.length} real photos, displaying them`, 'success');
                 
                 // Display real photos
                 for (let i = 0; i < 3; i++) {
@@ -536,11 +626,11 @@
                         img.alt = `Photo ${i + 1}`;
                         
                         img.onload = () => {
-                            console.log(`✅ Real photo ${i + 1} loaded successfully`);
+                            debugLog(`✅ Real photo ${i + 1} loaded successfully`, 'success');
                         };
                         
                         img.onerror = () => {
-                            console.log(`❌ Real photo ${i + 1} failed to load`);
+                            debugLog(`❌ Real photo ${i + 1} failed to load`, 'error');
                             // Fall back to placeholder
                             img.src = createPlaceholderImage(i + 1);
                         };
@@ -559,7 +649,7 @@
                 }, 2000);
                 
             } else {
-                console.log('❌ No real photos found, using placeholders');
+                debugLog('❌ No real photos found, using placeholders', 'warning');
                 
                 // Create placeholders for all 3 slots
                 for (let i = 0; i < 3; i++) {
@@ -573,7 +663,7 @@
                 }, 2000);
             }
 
-            console.log('=== DISPLAY COMPLETE ===');
+            debugLog('=== DISPLAY COMPLETE ===', 'info');
         }
 
         // Create placeholder for a specific slot
