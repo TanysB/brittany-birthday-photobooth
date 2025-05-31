@@ -867,9 +867,9 @@
             }
         }
 
-        // SIMPLE QR CODE: Just link to gallery, let it find photos automatically
+        // UNIQUE QR CODE: Create unique session ID for each photo session
         function generateQRCodeWithPhotosInURL() {
-            console.log('=== SIMPLE QR CODE GENERATION ===');
+            console.log('=== UNIQUE SESSION QR CODE GENERATION ===');
             
             const qrContainer = document.getElementById('qrcode');
             if (!qrContainer) {
@@ -889,42 +889,63 @@
                     return;
                 }
                 
-                // Store photos in browser storage for the gallery to find
-                const photoId = 'latest_photos';
+                // Create UNIQUE session ID for this specific photo session
+                const uniqueSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                console.log(`🔑 Created unique session ID: ${uniqueSessionId}`);
+                
+                // Store photos with this unique session ID
                 const photoData = {
                     photos: validPhotos,
                     filter: currentFilter,
                     timestamp: Date.now(),
-                    date: new Date().toLocaleString()
+                    date: new Date().toLocaleString(),
+                    sessionId: uniqueSessionId
                 };
                 
-                console.log(`📊 Storing ${validPhotos.length} photos...`);
+                console.log(`📊 Storing ${validPhotos.length} photos with unique session ID...`);
                 
-                // Store in multiple places for maximum compatibility
+                // Store in multiple places for maximum compatibility using the UNIQUE session ID
                 try {
-                    localStorage.setItem(photoId, JSON.stringify(photoData));
-                    localStorage.setItem('has_recent_photos', 'true');
-                    console.log('✅ Stored in localStorage');
+                    localStorage.setItem(uniqueSessionId, JSON.stringify(photoData));
+                    console.log(`✅ Stored in localStorage with key: ${uniqueSessionId}`);
                 } catch (e) {
                     console.log('❌ localStorage failed');
                 }
                 
                 try {
-                    sessionStorage.setItem(photoId, JSON.stringify(photoData));
-                    sessionStorage.setItem('has_recent_photos', 'true');
-                    console.log('✅ Stored in sessionStorage');
+                    sessionStorage.setItem(uniqueSessionId, JSON.stringify(photoData));
+                    console.log(`✅ Stored in sessionStorage with key: ${uniqueSessionId}`);
                 } catch (e) {
                     console.log('❌ sessionStorage failed');
                 }
                 
-                // Create the simplest possible QR code - just the album download page
+                // Clean up old sessions to prevent storage overflow
+                try {
+                    const allKeys = Object.keys(localStorage);
+                    const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
+                    
+                    // Keep only the 5 most recent sessions
+                    if (sessionKeys.length > 5) {
+                        const sortedKeys = sessionKeys.sort();
+                        const keysToRemove = sortedKeys.slice(0, -5);
+                        
+                        keysToRemove.forEach(key => {
+                            localStorage.removeItem(key);
+                            console.log(`🗑️ Removed old session: ${key}`);
+                        });
+                    }
+                } catch (e) {
+                    console.log('Cleanup failed');
+                }
+                
+                // Create QR code that points to album.html with the UNIQUE session ID
                 let qrUrl;
                 try {
                     const currentLocation = window.location;
-                    // Point to the album download page instead of gallery
-                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}album.html`;
+                    // Include the unique session ID in the URL
+                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}album.html?session=${uniqueSessionId}`;
                     
-                    console.log(`🔗 Album QR URL: ${qrUrl} (${qrUrl.length} chars)`);
+                    console.log(`🔗 Unique Album QR URL: ${qrUrl} (${qrUrl.length} chars)`);
                     
                     // Generate QR code
                     if (typeof qrcode === 'undefined') {
@@ -938,7 +959,7 @@
                     const qrImage = qr.createImgTag(6, 0);
                     qrContainer.innerHTML = qrImage;
                     
-                    console.log('✅ ALBUM QR CODE GENERATED SUCCESSFULLY!');
+                    console.log('✅ UNIQUE SESSION QR CODE GENERATED SUCCESSFULLY!');
                     
                     // Add success indicator
                     setTimeout(() => {
@@ -951,19 +972,19 @@
                         setTimeout(() => successDiv.remove(), 3000);
                     }, 100);
                     
-                    // Auto-download QR code
+                    // Auto-download QR code with unique filename
                     setTimeout(() => {
                         try {
                             const qrImg = qrContainer.querySelector('img');
                             if (qrImg && qrImg.src) {
                                 const link = document.createElement('a');
-                                link.download = `Album_QR_Code.png`;
+                                link.download = `Album_QR_${uniqueSessionId.slice(-8)}.png`;
                                 link.href = qrImg.src;
                                 link.style.display = 'none';
                                 document.body.appendChild(link);
                                 link.click();
                                 document.body.removeChild(link);
-                                console.log('🔽 QR code auto-downloaded');
+                                console.log(`🔽 Unique QR code auto-downloaded: Album_QR_${uniqueSessionId.slice(-8)}.png`);
                             }
                         } catch (downloadError) {
                             console.log('QR download failed:', downloadError);
@@ -973,11 +994,41 @@
                     // Update subtitle
                     const subtitle = document.getElementById('qrSubtitle');
                     if (subtitle) {
-                        subtitle.textContent = 'Scan to download album!';
+                        subtitle.textContent = 'Scan to download your album!';
                     }
                     
-                    console.log('📱 Album QR generation complete');
+                    console.log(`📱 Unique session QR generation complete for session: ${uniqueSessionId}`);
                     return; // Success!
+                    
+                } catch (qrError) {
+                    console.error('❌ Even unique session QR failed:', qrError);
+                }
+                
+                // If even the unique session QR failed, show manual instructions
+                qrContainer.innerHTML = `
+                    <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
+                        <strong>QR Library Error</strong><br>
+                        Photos saved successfully<br>
+                        <small>Session: ${uniqueSessionId.slice(-8)}</small>
+                    </div>
+                `;
+                
+                // Update subtitle for manual case
+                const subtitle = document.getElementById('qrSubtitle');
+                if (subtitle) {
+                    subtitle.textContent = 'Photos saved - QR failed';
+                }
+                
+            } catch (error) {
+                console.error('❌ QR generation completely failed:', error);
+                qrContainer.innerHTML = `
+                    <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">
+                        <div style="background: red; color: white; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px;">❌ ERROR</div>
+                        <small>Check browser console<br>for details</small>
+                    </div>
+                `;
+            }
+        }
                     
                 } catch (qrError) {
                     console.error('❌ Even simple QR failed:', qrError);
