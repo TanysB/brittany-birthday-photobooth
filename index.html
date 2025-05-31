@@ -708,22 +708,58 @@
             }
         }
 
-        // Clear old photo sessions to prevent localStorage from getting full
-        function clearOldPhotoSessions() {
+        // Clear old photo sessions to prevent localStorage from getting full - ENHANCED VERSION
+        function clearOldPhotoSessions(forceCleanup = false) {
             try {
                 const keys = Object.keys(localStorage);
                 const photoKeys = keys.filter(key => key.startsWith('photos_') || key.startsWith('session_'));
                 
-                // Keep only the 5 most recent sessions
-                if (photoKeys.length > 5) {
-                    const sortedKeys = photoKeys.sort().slice(0, -5);
-                    sortedKeys.forEach(key => {
-                        localStorage.removeItem(key);
-                        console.log('Removed old session:', key);
-                    });
+                console.log(`🧹 Found ${photoKeys.length} existing sessions`);
+                
+                if (forceCleanup) {
+                    // AGGRESSIVE CLEANUP: Remove all but the most recent session
+                    if (photoKeys.length > 1) {
+                        const sortedKeys = photoKeys.sort();
+                        const keysToRemove = sortedKeys.slice(0, -1); // Keep only the last one
+                        
+                        keysToRemove.forEach(key => {
+                            try {
+                                localStorage.removeItem(key);
+                                console.log(`🗑️ Force removed: ${key}`);
+                            } catch (e) {
+                                console.log(`❌ Could not remove: ${key}`);
+                            }
+                        });
+                        
+                        console.log(`🧹 Force cleanup: removed ${keysToRemove.length} sessions`);
+                    }
+                } else {
+                    // NORMAL CLEANUP: Keep only the 3 most recent sessions
+                    if (photoKeys.length > 3) {
+                        const sortedKeys = photoKeys.sort();
+                        const keysToRemove = sortedKeys.slice(0, -3); // Keep only the last 3
+                        
+                        keysToRemove.forEach(key => {
+                            try {
+                                localStorage.removeItem(key);
+                                console.log(`🗑️ Removed old session: ${key}`);
+                            } catch (e) {
+                                console.log(`❌ Could not remove: ${key}`);
+                            }
+                        });
+                        
+                        console.log(`🧹 Normal cleanup: removed ${keysToRemove.length} sessions`);
+                    }
                 }
+                
+                // Show remaining storage info
+                const remainingKeys = Object.keys(localStorage).filter(key => 
+                    key.startsWith('photos_') || key.startsWith('session_')
+                );
+                console.log(`📊 Remaining sessions: ${remainingKeys.length}`);
+                
             } catch (error) {
-                console.log('Could not clear old sessions:', error);
+                console.log('❌ Could not clear old sessions:', error);
             }
         }
 
@@ -752,7 +788,7 @@
             }
         }
 
-        // Start capture sequence
+        // Start capture sequence - FIXED 3 SECOND DELAY
         async function startCaptureSequence() {
             if (isCapturing) return;
             
@@ -772,7 +808,7 @@
                     console.log(`Capturing photo ${i + 1}`);
                     progressBar.textContent = `Photo ${i + 1} of 3`;
                     
-                    // 5 second countdown with voice
+                    // 5 second countdown with effect
                     await countdown();
                     
                     // Capture photo with filter applied
@@ -780,13 +816,21 @@
                     capturedPhotos.push(photoData);
                     console.log(`Photo ${i + 1} captured successfully with filter: ${currentFilter}`);
                     
-                    // Brief pause between photos (except after the last one)
+                    // Pause between photos
                     if (i < 2) {
+                        // 2 second pause between photos 1 and 2, and between photos 2 and 3
                         await new Promise(resolve => setTimeout(resolve, 2000));
                     }
                 }
 
-                console.log('All photos captured, showing results...');
+                // AFTER ALL 3 PHOTOS ARE CAPTURED - WAIT 3 SECONDS
+                console.log('🎉 All 3 photos captured! Waiting 3 seconds before showing results...');
+                progressBar.textContent = 'All photos captured! 🎉';
+                
+                // WAIT 3 FULL SECONDS BEFORE MOVING TO RESULTS
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                console.log('✅ 3 second wait complete - now showing results page...');
                 // Show results
                 showResults();
                 
@@ -840,7 +884,7 @@
             }
         }
 
-        // Capture individual photo WITH FILTER APPLIED - NO SOUND (ALREADY PLAYING)
+        // Capture individual photo WITH FILTER APPLIED - OPTIMIZED SIZE
         function capturePhotoWithFilter() {
             try {
                 console.log('📸 Photo captured');
@@ -848,11 +892,32 @@
                 // Show captured message
                 showCapturedMessage();
                 
-                canvas.width = captureVideo.videoWidth;
-                canvas.height = captureVideo.videoHeight;
+                // OPTIMIZE: Use smaller canvas size to reduce file size
+                const maxWidth = 800;  // Reduced from full video width
+                const maxHeight = 600; // Reduced from full video height
                 
-                // First draw the video frame normally
-                ctx.drawImage(captureVideo, 0, 0);
+                const videoWidth = captureVideo.videoWidth;
+                const videoHeight = captureVideo.videoHeight;
+                
+                // Calculate optimal size while maintaining aspect ratio
+                let canvasWidth = videoWidth;
+                let canvasHeight = videoHeight;
+                
+                if (videoWidth > maxWidth) {
+                    canvasWidth = maxWidth;
+                    canvasHeight = (videoHeight * maxWidth) / videoWidth;
+                }
+                
+                if (canvasHeight > maxHeight) {
+                    canvasHeight = maxHeight;
+                    canvasWidth = (videoWidth * maxHeight) / videoHeight;
+                }
+                
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                
+                // Draw the video frame with scaling
+                ctx.drawImage(captureVideo, 0, 0, canvasWidth, canvasHeight);
                 
                 // Then apply the filter using canvas manipulation for consistent results
                 if (currentFilter !== 'none') {
@@ -861,7 +926,8 @@
                     ctx.putImageData(filteredImageData, 0, 0);
                 }
                 
-                return canvas.toDataURL('image/png');
+                // Use JPEG with compression instead of PNG to save space
+                return canvas.toDataURL('image/jpeg', 0.8); // 80% quality = much smaller files
             } catch (error) {
                 console.error('Error capturing photo:', error);
                 return null;
@@ -946,7 +1012,7 @@
             }
         }
 
-        // EMERGENCY QR CODE GENERATION WITH FALLBACK API
+        // ENHANCED QR CODE GENERATION WITH STORAGE OPTIMIZATION
         function generateQRCodeWithFallback() {
             console.log('=== QR CODE GENERATION START ===');
             
@@ -956,113 +1022,236 @@
                 return;
             }
             
-            console.log('📦 QR container found');
-            qrContainer.innerHTML = '<div style="color: white; padding: 10px; font-size: 0.8em;">Generating QR...</div>';
+            // Show visual status
+            qrContainer.innerHTML = '<div style="color: white; padding: 10px; font-size: 0.8em; text-align: center;">🔄 Generating QR...</div>';
             
             try {
                 const validPhotos = capturedPhotos.filter(photo => photo !== null);
                 console.log(`📸 Valid photos count: ${validPhotos.length}`);
                 
                 if (validPhotos.length === 0) {
-                    console.error('❌ No valid photos found');
-                    qrContainer.innerHTML = '<div style="color: white; padding: 10px; font-size: 0.8em;">No photos found</div>';
+                    qrContainer.innerHTML = '<div style="color: white; padding: 10px; font-size: 0.8em; text-align: center;">❌ No photos found</div>';
                     return;
                 }
+                
+                // STORAGE OPTIMIZATION: Clear old sessions BEFORE storing new ones
+                clearOldPhotoSessions(true); // Force cleanup
                 
                 // Create session ID
                 const sessionId = 'session_' + Date.now();
                 console.log(`🔑 Created session ID: ${sessionId}`);
                 
-                // Store photos
+                // Calculate storage size before storing
+                const sessionData = {
+                    photos: validPhotos,
+                    timestamp: Date.now(),
+                    filter: currentFilter,
+                    date: new Date().toLocaleString()
+                };
+                
+                const dataString = JSON.stringify(sessionData);
+                const dataSizeMB = (dataString.length / 1024 / 1024).toFixed(2);
+                console.log(`📊 Session data size: ${dataSizeMB} MB`);
+                
+                // Store photos in localStorage with error handling
                 try {
-                    const sessionData = {
-                        photos: validPhotos,
-                        timestamp: Date.now(),
-                        filter: currentFilter,
-                        date: new Date().toLocaleString()
-                    };
-                    localStorage.setItem(sessionId, JSON.stringify(sessionData));
-                    console.log('✅ Photos stored successfully');
+                    localStorage.setItem(sessionId, dataString);
+                    console.log('✅ Photos stored in localStorage successfully');
+                    
+                    // DEBUG: Verify storage worked
+                    const testRetrieve = localStorage.getItem(sessionId);
+                    if (testRetrieve) {
+                        const parsed = JSON.parse(testRetrieve);
+                        console.log(`✅ Storage verified: ${parsed.photos.length} photos stored`);
+                    } else {
+                        console.error('❌ Storage verification failed');
+                    }
                 } catch (storageError) {
-                    console.error('❌ Storage failed:', storageError);
-                }
-                
-                const qrUrl = `gallery.html?session=${sessionId}`;
-                console.log(`🔗 QR URL: ${qrUrl}`);
-                
-                // METHOD 1: Try local QR library first
-                if (typeof qrcode !== 'undefined') {
-                    console.log('🔄 Trying local QR library...');
-                    try {
-                        const qr = qrcode(0, 'L');
-                        qr.addData(qrUrl);
-                        qr.make();
-                        const qrImageHtml = qr.createImgTag(4, 2);
-                        qrContainer.innerHTML = qrImageHtml;
-                        console.log('✅ LOCAL QR LIBRARY SUCCESS!');
+                    console.error('❌ localStorage failed:', storageError);
+                    
+                    if (storageError.name === 'QuotaExceededError') {
+                        console.log('🧹 Storage full, attempting aggressive cleanup...');
                         
-                        // Verify and download
-                        setTimeout(() => {
-                            const qrImg = qrContainer.querySelector('img');
-                            if (qrImg && qrImg.src) {
-                                console.log('✅ QR image verified');
-                                downloadQRCode(qrImg.src, sessionId);
-                            }
-                        }, 500);
+                        // Try aggressive cleanup
+                        try {
+                            // Clear ALL old sessions
+                            const allKeys = Object.keys(localStorage);
+                            const oldSessionKeys = allKeys.filter(key => 
+                                key.startsWith('session_') || key.startsWith('photos_')
+                            );
+                            
+                            oldSessionKeys.forEach(key => {
+                                localStorage.removeItem(key);
+                                console.log(`🗑️ Removed: ${key}`);
+                            });
+                            
+                            // Try storing again
+                            localStorage.setItem(sessionId, dataString);
+                            console.log('✅ Photos stored after cleanup');
+                            
+                        } catch (secondError) {
+                            console.error('❌ Storage still failed after cleanup:', secondError);
+                            qrContainer.innerHTML = `
+                                <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">
+                                    ❌ Storage Full<br>
+                                    <small>Clear browser data<br>
+                                    Photos displayed below</small>
+                                </div>
+                            `;
+                            return;
+                        }
+                    } else {
+                        qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">Storage Error</div>';
                         return;
-                    } catch (localError) {
-                        console.error('❌ Local QR failed:', localError);
                     }
                 }
                 
-                // METHOD 2: Use online QR API as fallback
-                console.log('🌐 Trying online QR API...');
-                const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`;
-                console.log('📡 API URL:', apiUrl);
-                
-                const qrImg = document.createElement('img');
-                qrImg.style.width = '100%';
-                qrImg.style.height = '100%';
-                qrImg.style.objectFit = 'contain';
-                
-                qrImg.onload = function() {
-                    console.log('✅ ONLINE QR API SUCCESS!');
-                    qrContainer.innerHTML = '';
-                    qrContainer.appendChild(qrImg);
+                // Create QR URL with multiple fallback formats
+                let qrUrl;
+                try {
+                    // Get current page URL
+                    const currentLocation = window.location;
+                    console.log('📍 Current location:', currentLocation.href);
                     
-                    // Download the QR code
+                    // Try different URL formats for maximum compatibility
+                    const urlFormats = [
+                        // Format 1: Full absolute URL
+                        `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?session=${sessionId}`,
+                        
+                        // Format 2: Protocol-relative URL
+                        `//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?session=${sessionId}`,
+                        
+                        // Format 3: Simple relative URL
+                        `gallery.html?session=${sessionId}`
+                    ];
+                    
+                    // Use the first format
+                    qrUrl = urlFormats[0];
+                    console.log('🔗 Primary QR URL:', qrUrl);
+                    console.log('🔗 Fallback URLs:', urlFormats.slice(1));
+                    
+                } catch (urlError) {
+                    console.error('❌ URL generation failed:', urlError);
+                    qrUrl = `gallery.html?session=${sessionId}`;
+                    console.log('🔗 Fallback QR URL:', qrUrl);
+                }
+                
+                // Visual update
+                qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">📚 Checking QR library...</div>';
+                
+                // METHOD 1: Try local QR library first
+                setTimeout(() => {
+                    if (typeof qrcode !== 'undefined') {
+                        console.log('🔄 Local QR library available, generating...');
+                        qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">🔧 Creating QR code...</div>';
+                        
+                        try {
+                            const qr = qrcode(0, 'L');
+                            qr.addData(qrUrl);
+                            qr.make();
+                            const qrImageHtml = qr.createImgTag(4, 2);
+                            qrContainer.innerHTML = qrImageHtml;
+                            console.log('✅ LOCAL QR LIBRARY SUCCESS!');
+                            
+                            // Add success indicator temporarily
+                            setTimeout(() => {
+                                const successDiv = document.createElement('div');
+                                successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: green; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
+                                successDiv.textContent = '✅ LOCAL QR';
+                                qrContainer.style.position = 'relative';
+                                qrContainer.appendChild(successDiv);
+                                
+                                setTimeout(() => successDiv.remove(), 3000);
+                            }, 100);
+                            
+                            // Auto-download QR code
+                            setTimeout(() => {
+                                const qrImg = qrContainer.querySelector('img');
+                                if (qrImg && qrImg.src) {
+                                    downloadQRCode(qrImg.src, sessionId);
+                                    console.log('🔽 QR code download initiated');
+                                }
+                            }, 500);
+                            
+                            // DEBUG: Show what URL is encoded in QR
+                            console.log('📱 QR Code contains URL:', qrUrl);
+                            console.log('📱 Session data stored with key:', sessionId);
+                            
+                            return;
+                        } catch (localError) {
+                            console.error('❌ Local QR failed:', localError);
+                            qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">❌ Local QR failed<br>🌐 Trying online...</div>';
+                        }
+                    } else {
+                        console.error('❌ QR library not available');
+                        qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">❌ No local QR library<br>🌐 Trying online...</div>';
+                    }
+                    
+                    // METHOD 2: Use online QR API as fallback
                     setTimeout(() => {
-                        downloadQRCode(qrImg.src, sessionId);
-                    }, 500);
-                };
-                
-                qrImg.onerror = function() {
-                    console.error('❌ Online QR API failed');
-                    // METHOD 3: Manual QR display
-                    qrContainer.innerHTML = `
-                        <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center; line-height: 1.4;">
-                            <strong>Manual QR</strong><br>
-                            <div style="background: white; color: black; padding: 8px; margin: 8px 0; border-radius: 4px; font-family: monospace; font-size: 0.6em; word-break: break-all;">
-                                ${qrUrl}
-                            </div>
-                            <small>Session: ${sessionId.slice(-8)}</small>
-                        </div>
-                    `;
-                };
-                
-                qrImg.src = apiUrl;
+                        console.log('🌐 Trying online QR API...');
+                        const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`;
+                        console.log('📡 API request URL:', apiUrl);
+                        
+                        const qrImg = document.createElement('img');
+                        qrImg.style.width = '100%';
+                        qrImg.style.height = '100%';
+                        qrImg.style.objectFit = 'contain';
+                        
+                        qrImg.onload = function() {
+                            console.log('✅ ONLINE QR API SUCCESS!');
+                            qrContainer.innerHTML = '';
+                            qrContainer.appendChild(qrImg);
+                            
+                            // Add success indicator
+                            const successDiv = document.createElement('div');
+                            successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: blue; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
+                            successDiv.textContent = '✅ ONLINE QR';
+                            qrContainer.style.position = 'relative';
+                            qrContainer.appendChild(successDiv);
+                            
+                            setTimeout(() => successDiv.remove(), 3000);
+                            
+                            // Download
+                            setTimeout(() => {
+                                downloadQRCode(qrImg.src, sessionId);
+                                console.log('🔽 Online QR code download initiated');
+                            }, 500);
+                            
+                            // DEBUG: Show what URL is encoded
+                            console.log('📱 Online QR Code contains URL:', qrUrl);
+                        };
+                        
+                        qrImg.onerror = function() {
+                            console.error('❌ Online QR API failed');
+                            // METHOD 3: Manual QR display
+                            qrContainer.innerHTML = `
+                                <div style="color: white; padding: 6px; font-size: 0.65em; text-align: center; line-height: 1.3;">
+                                    <div style="background: orange; color: black; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px; font-size: 0.9em;">📱 MANUAL QR</div>
+                                    <div style="background: white; color: black; padding: 6px; margin: 4px 0; border-radius: 4px; font-family: monospace; font-size: 0.7em; word-break: break-all; line-height: 1.2;">
+                                        ${qrUrl}
+                                    </div>
+                                    <small>Copy URL above to view photos</small>
+                                </div>
+                            `;
+                            console.log('📱 Manual QR displayed with URL:', qrUrl);
+                        };
+                        
+                        qrImg.src = apiUrl;
+                    }, 1000);
+                }, 500);
                 
             } catch (error) {
                 console.error('❌ All QR methods failed:', error);
                 qrContainer.innerHTML = `
                     <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">
-                        <strong>QR Failed</strong><br>
-                        <small>Photos saved locally</small>
+                        <div style="background: red; color: white; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px;">❌ ALL QR FAILED</div>
+                        <small>Photos saved locally<br>Session: ${Date.now().toString().slice(-8)}</small>
                     </div>
                 `;
             }
         }
-        
+
         // Download QR code helper
         function downloadQRCode(imageSrc, sessionId) {
             try {
@@ -1073,20 +1262,10 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                console.log('🔽 QR code downloaded');
+                console.log('🔽 QR code downloaded successfully');
             } catch (downloadError) {
-                console.log('Download failed:', downloadError);
+                console.log('QR download failed:', downloadError);
             }
-        }
-
-        // Convert data URL to blob
-        function dataURLtoBlob(dataurl) {
-            var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
-                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-            while(n--){
-                u8arr[n] = bstr.charCodeAt(n);
-            }
-            return new Blob([u8arr], {type:mime});
         }
 
         // Initialize on load
