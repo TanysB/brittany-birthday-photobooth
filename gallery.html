@@ -151,8 +151,31 @@
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
 
-        /* Page title */
-        .page-title {
+        /* Error message */
+        .error-message {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #8B0000;
+            font-size: 1.2em;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px 30px;
+            border-radius: 25px;
+            border: 3px solid #8B0000;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        /* Debug info */
+        .debug-info {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #654321;
+            border-radius: 15px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+            color: #333;
             display: none;
         }
 
@@ -201,11 +224,6 @@
                 min-width: 260px;
             }
             
-            .page-title {
-                font-size: 1.7em;
-                padding: 12px 20px;
-            }
-            
             .loading-message {
                 font-size: 1.2em;
                 padding: 18px 25px;
@@ -227,11 +245,6 @@
                 min-width: 240px;
             }
             
-            .page-title {
-                font-size: 1.5em;
-                padding: 10px 18px;
-            }
-            
             .loading-message {
                 font-size: 1.1em;
                 padding: 15px 20px;
@@ -244,7 +257,15 @@
         Loading your amazing photos...
     </div>
 
-    <div class="gallery-container" id="galleryContainer">
+    <div class="error-message" id="errorMessage">
+        <!-- Error messages will appear here -->
+    </div>
+
+    <div class="debug-info" id="debugInfo">
+        <!-- Debug information will appear here -->
+    </div>
+
+    <div class="gallery-container" id="galleryContainer" style="display: none;">
         <!-- Photo overlays positioned exactly in the white rectangles -->
         <div class="photo-overlay photo-1" id="photoSlot1">
             <!-- Photo 1 will be inserted here -->
@@ -258,7 +279,7 @@
     </div>
     
     <!-- Save to Gallery Button -->
-    <button class="save-button" onclick="saveToGallery()">
+    <button class="save-button" onclick="saveToGallery()" id="saveButton" style="display: none;">
         <span class="button-text">Save to Gallery</span>
     </button>
 
@@ -270,47 +291,101 @@
 
     <script>
         let photoData = [];
+        let sessionData = null;
+
+        // Enhanced logging function
+        function log(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            
+            // Show debug info in UI for troubleshooting
+            const debugDiv = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debugDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            debugDiv.style.display = 'block';
+        }
 
         // Get photo data from URL parameters or localStorage
         function getPhotoData() {
-            // First, try to get from URL parameters (new session-based approach)
+            log('Starting photo data retrieval...');
+            
+            // Get session ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('session');
             
+            log(`Session ID from URL: ${sessionId}`);
+            log(`Current URL: ${window.location.href}`);
+            
+            // First, try the exact session ID from URL
             if (sessionId) {
                 try {
-                    const storedPhotos = localStorage.getItem(sessionId);
-                    if (storedPhotos) {
-                        photoData = JSON.parse(storedPhotos);
-                        console.log('Photos loaded from session:', sessionId);
-                        return;
+                    log(`Looking for session data with key: ${sessionId}`);
+                    const storedData = localStorage.getItem(sessionId);
+                    
+                    if (storedData) {
+                        sessionData = JSON.parse(storedData);
+                        photoData = sessionData.photos || [];
+                        log(`✅ Found ${photoData.length} photos in session ${sessionId}`);
+                        return true;
+                    } else {
+                        log(`❌ No data found for session ${sessionId}`, 'error');
                     }
                 } catch (e) {
-                    console.log('Could not parse session photo data');
+                    log(`❌ Error parsing session data: ${e.message}`, 'error');
                 }
             }
             
+            // Show what's available in localStorage for debugging
+            const allKeys = Object.keys(localStorage);
+            const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
+            log(`📋 Available sessions in localStorage: [${sessionKeys.join(', ')}]`);
+            
+            // If exact session not found but others exist, try fallback
+            if (sessionKeys.length > 0) {
+                log('🔄 Trying most recent session as fallback...');
+                
+                // Sort sessions by timestamp (newest first)
+                const sortedSessions = sessionKeys.sort((a, b) => {
+                    const timeA = a.split('_')[1] || '0';
+                    const timeB = b.split('_')[1] || '0';
+                    return parseInt(timeB) - parseInt(timeA);
+                });
+                
+                const mostRecent = sortedSessions[0];
+                log(`🔄 Trying fallback session: ${mostRecent}`);
+                
+                try {
+                    const fallbackData = localStorage.getItem(mostRecent);
+                    if (fallbackData) {
+                        sessionData = JSON.parse(fallbackData);
+                        photoData = sessionData.photos || [];
+                        log(`✅ Fallback successful: Found ${photoData.length} photos in ${mostRecent}`);
+                        log(`⚠️ Note: Using fallback session instead of requested ${sessionId}`);
+                        return true;
+                    }
+                } catch (e) {
+                    log(`❌ Fallback failed: ${e.message}`, 'error');
+                }
+            }
+
             // Fallback: try to get from URL parameters (old method)
             const photoParam = urlParams.get('photos');
             if (photoParam) {
                 try {
                     photoData = JSON.parse(decodeURIComponent(photoParam));
-                    console.log('Photos loaded from URL parameters');
-                    return;
+                    log(`✅ Loaded ${photoData.length} photos from URL parameters`);
+                    return true;
                 } catch (e) {
-                    console.log('Could not parse URL photo data');
+                    log(`❌ Could not parse URL photo data: ${e.message}`, 'error');
                 }
             }
 
-            // If still no data, show placeholder
-            if (!photoData || photoData.length === 0) {
-                console.log('No photo data found, using placeholders');
-                photoData = generatePlaceholderPhotos();
-            }
+            log(`❌ No photo data found anywhere`);
+            return false;
         }
 
         // Generate placeholder photos for testing
         function generatePlaceholderPhotos() {
+            log('Generating placeholder photos...');
             const placeholders = [];
             for (let i = 0; i < 3; i++) {
                 const canvas = document.createElement('canvas');
@@ -339,29 +414,134 @@
             return placeholders;
         }
 
+        // Show error message
+        function showError(message) {
+            log(`Showing error: ${message}`, 'error');
+            
+            const loadingMsg = document.getElementById('loadingMessage');
+            const errorMsg = document.getElementById('errorMessage');
+            const galleryContainer = document.getElementById('galleryContainer');
+            const saveButton = document.getElementById('saveButton');
+            
+            loadingMsg.style.display = 'none';
+            galleryContainer.style.display = 'none';
+            saveButton.style.display = 'none';
+            
+            errorMsg.innerHTML = `
+                <strong>❌ Could not load photos</strong><br>
+                ${message}<br><br>
+                <small>Check the debug information below for details.</small>
+            `;
+            errorMsg.style.display = 'block';
+        }
+
         // Display photos in the gallery
         function displayPhotos() {
-            photoData.forEach((photo, index) => {
+            log('Displaying photos...');
+            
+            if (!photoData || photoData.length === 0) {
+                showError('No photos found in this session.');
+                return;
+            }
+
+            // Ensure we have exactly 3 photos (pad with placeholders if needed)
+            while (photoData.length < 3) {
+                photoData.push(null);
+            }
+
+            let photosLoaded = 0;
+            
+            photoData.slice(0, 3).forEach((photo, index) => {
                 const photoSlot = document.getElementById(`photoSlot${index + 1}`);
-                if (photoSlot && photo) {
-                    const img = document.createElement('img');
-                    img.src = photo;
-                    img.className = 'gallery-photo';
-                    img.alt = `Photo ${index + 1}`;
-                    photoSlot.appendChild(img);
+                if (photoSlot) {
+                    photoSlot.innerHTML = ''; // Clear any existing content
+                    
+                    if (photo) {
+                        const img = document.createElement('img');
+                        img.src = photo;
+                        img.className = 'gallery-photo';
+                        img.alt = `Photo ${index + 1}`;
+                        
+                        img.onload = () => {
+                            photosLoaded++;
+                            log(`Photo ${index + 1} loaded successfully`);
+                            
+                            if (photosLoaded === photoData.filter(p => p).length) {
+                                log('All photos loaded successfully');
+                                showGallery();
+                            }
+                        };
+                        
+                        img.onerror = () => {
+                            log(`Failed to load photo ${index + 1}`, 'error');
+                            // Create placeholder for failed photo
+                            const placeholderCanvas = document.createElement('canvas');
+                            const ctx = placeholderCanvas.getContext('2d');
+                            placeholderCanvas.width = 400;
+                            placeholderCanvas.height = 300;
+                            ctx.fillStyle = '#f0f0f0';
+                            ctx.fillRect(0, 0, 400, 300);
+                            ctx.fillStyle = '#999';
+                            ctx.font = '20px Georgia';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('Photo unavailable', 200, 150);
+                            
+                            img.src = placeholderCanvas.toDataURL();
+                        };
+                        
+                        photoSlot.appendChild(img);
+                    } else {
+                        // Create placeholder for missing photo
+                        log(`Creating placeholder for missing photo ${index + 1}`);
+                        const placeholderCanvas = document.createElement('canvas');
+                        const ctx = placeholderCanvas.getContext('2d');
+                        placeholderCanvas.width = 400;
+                        placeholderCanvas.height = 300;
+                        
+                        const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+                        gradient.addColorStop(0, '#F5DEB3');
+                        gradient.addColorStop(1, '#DEB887');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(0, 0, 400, 300);
+                        
+                        ctx.fillStyle = '#654321';
+                        ctx.font = '24px Georgia';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('No Photo', 200, 150);
+                        
+                        const img = document.createElement('img');
+                        img.src = placeholderCanvas.toDataURL();
+                        img.className = 'gallery-photo';
+                        img.alt = `Photo ${index + 1} (placeholder)`;
+                        photoSlot.appendChild(img);
+                        
+                        photosLoaded++;
+                    }
                 }
             });
 
-            // Hide loading message
-            const loadingMsg = document.getElementById('loadingMessage');
-            if (loadingMsg) {
-                loadingMsg.style.display = 'none';
+            // If no actual photos, show gallery immediately
+            if (photoData.filter(p => p).length === 0) {
+                showGallery();
             }
+        }
+
+        // Show the gallery and hide loading
+        function showGallery() {
+            log('Showing gallery interface');
+            
+            const loadingMsg = document.getElementById('loadingMessage');
+            const galleryContainer = document.getElementById('galleryContainer');
+            const saveButton = document.getElementById('saveButton');
+            
+            loadingMsg.style.display = 'none';
+            galleryContainer.style.display = 'block';
+            saveButton.style.display = 'block';
         }
 
         // Save photos to device gallery - captures the exact display
         async function saveToGallery() {
-            console.log('Save to gallery clicked');
+            log('Save to gallery clicked');
             
             // Add visual feedback that processing is happening
             const saveButton = document.querySelector('.save-button');
@@ -377,7 +557,7 @@
                 showSuccessMessage();
 
             } catch (error) {
-                console.error('Error saving photos:', error);
+                log(`Error saving photos: ${error.message}`, 'error');
                 alert('Sorry, there was an error saving your photos. Please try again.');
             } finally {
                 // Restore button
@@ -388,7 +568,7 @@
 
         // Capture the gallery exactly as displayed with album background and positioned photos
         async function captureGalleryDisplay() {
-            console.log('Starting gallery capture...');
+            log('Starting gallery capture...');
             
             const galleryContainer = document.getElementById('galleryContainer');
             const containerRect = galleryContainer.getBoundingClientRect();
@@ -404,141 +584,10 @@
             ctx.scale(scale, scale);
             
             try {
-                console.log('Loading album background...');
+                log('Loading album background...');
                 // Load and draw the actual album.png background
                 const albumBackground = await createAlbumBackground(containerRect.width, containerRect.height);
                 ctx.drawImage(albumBackground, 0, 0, containerRect.width, containerRect.height);
-                console.log('Album background loaded successfully');
+                log('Album background loaded successfully');
                 
-                // Draw each captured photo sequentially instead of all at once
-                console.log('Drawing photos...');
-                for (let i = 1; i <= 3; i++) {
-                    const photoSlot = document.getElementById(`photoSlot${i}`);
-                    const img = photoSlot.querySelector('.gallery-photo');
-                    
-                    if (img && img.src && photoData[i-1]) {
-                        console.log(`Drawing photo ${i}...`);
-                        await drawPhotoToCanvas(ctx, photoData[i-1], photoSlot, galleryContainer);
-                        console.log(`Photo ${i} drawn successfully`);
-                        
-                        // Small delay to prevent browser from freezing
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                    }
-                }
-                
-                console.log('All photos drawn, generating download...');
-                
-                // Download the captured gallery with album.png background and real photos
-                const link = document.createElement('a');
-                link.download = 'Brittany_22nd_BDAY_Gallery.png';
-                link.href = canvas.toDataURL('image/png', 0.9); // Reduced quality slightly
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                console.log('Download initiated successfully');
-                
-            } catch (error) {
-                console.error('Error in captureGalleryDisplay:', error);
-                throw error;
-            }
-        }
-
-        // Load the actual album.png background
-        async function createAlbumBackground(width, height) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    // Draw the album.png background to fill the canvas
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas);
-                };
-                img.onerror = () => {
-                    // Fallback if album.png can't be loaded
-                    console.log('Could not load album.png, using fallback background');
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    // Create a simple fallback background
-                    const gradient = ctx.createLinearGradient(0, 0, width, height);
-                    gradient.addColorStop(0, '#8B4513');
-                    gradient.addColorStop(1, '#D2B48C');
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, width, height);
-                    
-                    resolve(canvas);
-                };
-                img.src = 'album.png'; // Load the actual album.png file
-            });
-        }
-
-        // Draw photo to canvas at exact position using original photo data
-        function drawPhotoToCanvas(ctx, photoSrc, photoSlot, galleryContainer) {
-            return new Promise((resolve, reject) => {
-                const tempImg = new Image();
-                
-                // Set a timeout to prevent hanging
-                const timeout = setTimeout(() => {
-                    console.log('Photo loading timed out');
-                    reject(new Error('Photo loading timeout'));
-                }, 5000); // 5 second timeout
-                
-                tempImg.onload = () => {
-                    clearTimeout(timeout);
-                    try {
-                        const slotRect = photoSlot.getBoundingClientRect();
-                        const containerRect = galleryContainer.getBoundingClientRect();
-                        
-                        // Calculate relative position within the container (matching CSS percentages)
-                        const x = (slotRect.left - containerRect.left);
-                        const y = (slotRect.top - containerRect.top);
-                        const width = slotRect.width;
-                        const height = slotRect.height;
-                        
-                        // Draw the high-quality original image at the exact position
-                        ctx.drawImage(tempImg, x, y, width, height);
-                        console.log('Photo drawn to canvas successfully');
-                        resolve();
-                    } catch (error) {
-                        console.error('Error drawing image to canvas:', error);
-                        resolve(); // Continue even if drawing fails
-                    }
-                };
-                
-                tempImg.onerror = (error) => {
-                    clearTimeout(timeout);
-                    console.log('Could not load photo for canvas:', error);
-                    resolve(); // Continue even if image fails
-                };
-                
-                // Use the original photo data for better quality
-                tempImg.src = photoSrc;
-            });
-        }
-
-        // Show success message
-        function showSuccessMessage() {
-            const successMsg = document.getElementById('successMessage');
-            successMsg.style.display = 'block';
-            
-            setTimeout(() => {
-                successMsg.style.display = 'none';
-            }, 3000);
-        }
-
-        // Initialize the gallery
-        window.addEventListener('load', () => {
-            getPhotoData();
-            displayPhotos();
-        });
-    </script>
-</body>
-</html>
+                // Draw each captured photo sequ
