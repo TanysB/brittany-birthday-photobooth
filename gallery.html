@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brittany's 22nd Birthday - Photo Gallery</title>
+    <title>Brittanys 22nd Birthday Photo Booth</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,666 +14,1104 @@
 
         body {
             font-family: 'Georgia', serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #F5DEB3, #DEB887);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
         }
 
-        .gallery-container {
+        .page {
+            display: none;
+            width: 100vw;
+            height: 100vh;
             position: relative;
-            width: 100%;
-            max-width: 350px;
-            background-image: url('album.png');
             background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
-            aspect-ratio: 1/2.5;
-            margin-bottom: 30px;
+            background-color: #F5DEB3;
         }
 
-        /* Photo overlays positioned exactly in the white rectangles of album.png */
-        .photo-overlay {
+        .page.active {
+            display: block;
+        }
+
+        /* Start Page */
+        .start-page {
+            background-image: url('start.png');
+            cursor: pointer;
+        }
+
+        /* Filter Page */
+        .filter-page {
+            background-image: url('filters.png');
+            position: relative;
+        }
+
+        /* Camera overlay for white square area - FILTER PAGE */
+        .filter-page .camera-overlay {
             position: absolute;
+            top: 13%;
+            left: 50%;
+            transform: translateX(-49%);
+            width: 74%;
+            height: 32.5%;
             overflow: hidden;
+            background: white;
         }
 
-        /* Top photo - positioned in first white rectangle */
-        .photo-1 {
-            top: 2.5%;
-            left: 8.9%;
-            width: 82%;
-            height: 24%;
+        /* Camera overlay for white square area - CAPTURE PAGE */
+        .capture-page .camera-overlay {
+            position: absolute;
+            top: 13%;
+            left: 50.999%;
+            transform: translateX(-51%);
+            width: 82.8%;
+            height: 43%;
+            overflow: hidden;
+            background: white;
         }
 
-        /* Middle photo - positioned in second white rectangle */
-        .photo-2 {
-            top: 28.5%;
-            left: 8.9%;
-            width: 82%;
-            height: 24%;
-        }
-
-        /* Bottom photo - positioned in third white rectangle */
-        .photo-3 {
-            top: 54.5%;
-            left: 8.9%;
-            width: 82.2%;
-            height: 24%;
-        }
-
-        .gallery-photo {
+        #video, #captureVideo {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
+            transform: scaleX(-1); /* Mirror/invert the camera horizontally */
         }
 
-        /* Save button - classy cursive design */
-        .save-button {
-            background: linear-gradient(135deg, #654321, #4a2c1a, #3e2415);
-            color: #d4b896;
-            border: none;
-            padding: 20px 45px;
-            border-radius: 50px;
-            font-size: 1.4em;
-            font-weight: normal;
-            font-family: 'Brush Script MT', cursive, 'Georgia', serif;
-            font-style: italic;
-            cursor: pointer;
-            box-shadow: 
-                0 8px 25px rgba(52, 36, 21, 0.5),
-                0 4px 12px rgba(0, 0, 0, 0.4),
-                inset 0 2px 0 rgba(212, 184, 150, 0.2);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
-            position: relative;
-            overflow: hidden;
-            border: 2px solid #8B4513;
-            letter-spacing: 2px;
-            min-width: 280px;
-            backdrop-filter: blur(10px);
-        }
-
-        .save-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(212, 184, 150, 0.3), transparent);
-            transition: left 0.7s;
-        }
-
-        .save-button:hover {
-            background: linear-gradient(135deg, #7d5436, #5a3422, #4a2c1a);
-            transform: translateY(-3px) scale(1.03);
-            box-shadow: 
-                0 12px 35px rgba(52, 36, 21, 0.6),
-                0 8px 20px rgba(0, 0, 0, 0.5),
-                inset 0 2px 0 rgba(212, 184, 150, 0.3);
-            color: #e6d4b8;
-        }
-
-        .save-button:hover::before {
-            left: 100%;
-        }
-
-        .save-button:active {
-            transform: translateY(-1px) scale(1.01);
-            box-shadow: 
-                0 6px 20px rgba(52, 36, 21, 0.5),
-                0 3px 10px rgba(0, 0, 0, 0.4);
-        }
-
-        .button-text {
-            position: relative;
-            z-index: 2;
-        }
-
-        /* Loading message */
-        .loading-message {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #654321;
-            font-size: 1.3em;
-            font-style: italic;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            background: rgba(255, 255, 255, 0.8);
-            padding: 20px 30px;
-            border-radius: 25px;
-            border: 3px solid #654321;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Page title */
-        .page-title {
+        #canvas {
             display: none;
         }
 
-        /* Success message */
-        .success-message {
-            position: fixed;
+        /* Clickable filter button areas */
+        .filter-button-area {
+            position: absolute;
+            cursor: pointer;
+        }
+
+        /* No Filter button area */
+        .no-filter-btn {
+            top: 50%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 45%;
+            height: 8%;
+        }
+
+        /* Black & White button area */
+        .bw-filter-btn {
+            top: 61%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 45%;
+            height: 8%;
+        }
+
+        /* Vintage button area */
+        .vintage-filter-btn {
+            top: 72%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 45%;
+            height: 8%;
+        }
+
+        /* Desert Sunset filter button area */
+        .sunset-filter-btn {
+            top: 83%;
+            left: 25%;
+            width: 20%;
+            height: 8%;
+        }
+
+        /* Birthday Sparkle filter button area */
+        .sparkle-filter-btn {
+            top: 83%;
+            left: 55%;
+            width: 20%;
+            height: 8%;
+        }
+
+        /* Capture Page */
+        .capture-page {
+            background-image: url('countdown.png');
+        }
+
+        .countdown-container {
+            position: absolute;
+            bottom: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            background: rgba(245, 222, 179, 0.95);
+            border: 4px solid #654321;
+            border-radius: 20px;
+            padding: 20px 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        .countdown-number {
+            font-size: 5em;
+            color: #654321;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-family: 'Georgia', serif;
+            margin-bottom: 10px;
+        }
+
+        .countdown-text {
+            font-size: 1.4em;
+            color: #654321;
+            font-style: italic;
+            font-family: 'Georgia', serif;
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(101, 67, 33, 0.9);
+            color: #F5DEB3;
+            padding: 12px 25px;
+            border-radius: 15px;
+            font-size: 1.3em;
+            font-weight: normal;
+            font-style: italic;
+            font-family: 'Georgia', serif;
+        }
+
+        /* Captured message - Mexican Western themed - MAIN TEXT ONLY */
+        .captured-message {
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #32CD32, #228B22, #006400);
-            color: white;
+            background: linear-gradient(135deg, #8B4513, #654321, #4a2c1a);
+            color: #F5DEB3;
             padding: 25px 45px;
             border-radius: 25px;
-            font-size: 1.4em;
+            font-size: 2.2em;
             font-weight: bold;
-            box-shadow: 
-                0 15px 40px rgba(0, 0, 0, 0.4),
-                0 8px 20px rgba(50, 205, 50, 0.3);
-            z-index: 1000;
-            display: none;
+            font-family: 'Georgia', serif;
             text-align: center;
-            border: 3px solid white;
-            backdrop-filter: blur(10px);
-            animation: successPulse 0.6s ease-out;
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.6),
+                0 8px 20px rgba(139, 69, 19, 0.4),
+                inset 0 3px 0 rgba(245, 222, 179, 0.3);
+            border: 4px solid #DEB887;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: none;
+            animation: captureFlash 1.5s ease-out;
+            letter-spacing: 2px;
         }
 
-        @keyframes successPulse {
-            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-            50% { transform: translate(-50%, -50%) scale(1.1); }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        @keyframes captureFlash {
+            0% { 
+                transform: translate(-50%, -50%) scale(0.7);
+                opacity: 0;
+            }
+            20% { 
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 1;
+            }
+            100% { 
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
         }
 
-        /* Mobile responsive */
+        /* Result Page */
+        .result-page {
+            background-image: url('end.png');
+            position: relative;
+        }
+
+        /* Photo strip overlay for left white area - END PAGE specific sizing */
+        .photo-strip-overlay {
+            position: absolute;
+            top: 13.4%;
+            left: 9.3%;
+            width: 38%;
+            height: 58.7%;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .strip-photo-slot {
+            flex: 1;
+            background: white;
+            border-bottom: 1px solid #654321;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .strip-photo-slot:last-child {
+            border-bottom: none;
+        }
+
+        .strip-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* QR overlay for right white area - END PAGE specific sizing */
+        .qr-overlay {
+            position: absolute;
+            top: 11.8%;
+            right: 4.9%;
+            width: 45.1%;
+            height: 47%;
+            background: linear-gradient(135deg, #4e3422, #221a13);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .qr-title {
+            font-size: 1.6em;
+            color: #F5DEB3;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .qr-code {
+            margin: 8px 0;
+            background: white;
+            padding: 4px;
+            border-radius: 4px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 90%;
+        }
+
+        /* BIGGER QR CODE */
+        .qr-code img {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: none !important;
+            display: block;
+            object-fit: contain;
+        }
+
+        .qr-subtitle {
+            color: #F5DEB3;
+            font-size: 1em;
+            margin-top: 6px;
+            line-height: 1.1;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* Done button area - POSITIONED CORRECTLY */
+        .done-button-area {
+            position: absolute;
+            bottom: 25%;
+            right: 15%;
+            width: 25%;
+            height: 10%;
+            cursor: pointer;
+            touch-action: manipulation;
+            z-index: 1000;
+        }
+
+        .done-button-area:active {
+            transform: scale(0.95);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Mobile optimizations */
         @media (max-width: 768px) {
-            body {
-                padding: 15px;
+            .countdown-number {
+                font-size: 3em;
             }
             
-            .gallery-container {
-                max-width: 320px;
+            .countdown-container {
+                padding: 15px 30px;
             }
             
-            .save-button {
-                padding: 18px 40px;
-                font-size: 1.3em;
-                min-width: 260px;
-            }
-            
-            .page-title {
-                font-size: 1.7em;
-                padding: 12px 20px;
-            }
-            
-            .loading-message {
-                font-size: 1.2em;
-                padding: 18px 25px;
-            }
-        }
-
-        /* iPad Mini optimizations */
-        @media screen and (max-width: 1024px) and (max-height: 768px) {
-            .gallery-container {
-                max-width: 300px;
-            }
-            
-            .save-button {
-                padding: 16px 35px;
-                font-size: 1.2em;
-                min-width: 240px;
-            }
-            
-            .loading-message {
-                font-size: 1.1em;
-                padding: 15px 20px;
-            }
-        }
-
-        /* Portrait iPad Mini */
-        @media screen and (max-width: 768px) and (max-height: 1024px) {
-            .gallery-container {
-                max-width: 280px;
-            }
-            
-            .save-button {
-                padding: 14px 30px;
-                font-size: 1.1em;
-                min-width: 220px;
-            }
-            
-            .loading-message {
-                font-size: 1.0em;
-                padding: 12px 18px;
+            .camera-overlay {
+                top: 15%;
+                width: 70%;
+                height: 30%;
             }
         }
 
         @media (max-width: 480px) {
-            body {
-                padding: 10px;
+            .countdown-number {
+                font-size: 2.5em;
             }
             
-            .gallery-container {
-                max-width: 300px;
-            }
-            
-            .save-button {
-                padding: 16px 35px;
-                font-size: 1.2em;
-                min-width: 240px;
-            }
-            
-            .page-title {
-                font-size: 1.5em;
-                padding: 10px 18px;
-            }
-            
-            .loading-message {
-                font-size: 1.1em;
-                padding: 15px 20px;
+            .camera-overlay {
+                top: 18%;
+                width: 75%;
+                height: 28%;
             }
         }
     </style>
 </head>
 <body>
-    <div class="loading-message" id="loadingMessage">
-        Loading your amazing photos...
+    <!-- Start Page - Entire page is clickable -->
+    <div class="page active start-page" id="startPage" onclick="goToFilterPage()">
     </div>
 
-    <div class="gallery-container" id="galleryContainer">
-        <!-- Photo overlays positioned exactly in the white rectangles -->
-        <div class="photo-overlay photo-1" id="photoSlot1">
-            <!-- Photo 1 will be inserted here -->
+    <!-- Filter Selection Page -->
+    <div class="page filter-page" id="filterPage">
+        <!-- Camera overlay for the white square -->
+        <div class="camera-overlay">
+            <video id="video" autoplay></video>
+            <canvas id="canvas"></canvas>
         </div>
-        <div class="photo-overlay photo-2" id="photoSlot2">
-            <!-- Photo 2 will be inserted here -->
+        
+        <!-- Clickable areas for filter buttons (invisible overlays) -->
+        <div class="filter-button-area no-filter-btn" onclick="setFilter('none')" data-filter="none"></div>
+        <div class="filter-button-area bw-filter-btn" onclick="setFilter('grayscale')" data-filter="grayscale"></div>
+        <div class="filter-button-area vintage-filter-btn" onclick="setFilter('sepia')" data-filter="sepia"></div>
+        <div class="filter-button-area sunset-filter-btn" onclick="setFilter('sunset')" data-filter="sunset"></div>
+        <div class="filter-button-area sparkle-filter-btn" onclick="setFilter('none')" data-filter="none"></div>
+    </div>
+
+    <!-- Capture Page -->
+    <div class="page capture-page" id="capturePage">
+        <!-- Camera overlay for the white square -->
+        <div class="camera-overlay">
+            <video id="captureVideo" autoplay></video>
         </div>
-        <div class="photo-overlay photo-3" id="photoSlot3">
-            <!-- Photo 3 will be inserted here -->
+        
+        <div class="countdown-container hidden" id="countdownContainer">
+            <div class="countdown-number" id="countdownNumber">5</div>
+            <div class="countdown-text" id="countdownText">Get Ready!</div>
+        </div>
+        <div class="progress-bar hidden" id="progressBar">Photo 1 of 3</div>
+        
+        <!-- Captured message - Mexican Western themed -->
+        <div class="captured-message hidden" id="capturedMessage">
+            CAPTURED!
         </div>
     </div>
-    
-    <!-- Save to Gallery Button -->
-    <button class="save-button" onclick="saveToGallery()">
-        <span class="button-text">Save to Gallery</span>
-    </button>
 
-    <!-- Success message -->
-    <div class="success-message" id="successMessage">
-        Photos saved successfully!<br>
-        <small style="font-size: 0.8em; margin-top: 8px; display: block;">Check your downloads folder!</small>
+    <!-- Result Page -->
+    <div class="page result-page" id="resultPage">
+        <!-- Photo strip overlay for left white area -->
+        <div class="photo-strip-overlay">
+            <div class="strip-photo-slot" id="photo1">
+                <!-- Photo 1 will be inserted here -->
+            </div>
+            <div class="strip-photo-slot" id="photo2">
+                <!-- Photo 2 will be inserted here -->
+            </div>
+            <div class="strip-photo-slot" id="photo3">
+                <!-- Photo 3 will be inserted here -->
+            </div>
+        </div>
+        
+        <!-- QR overlay for right white area -->
+        <div class="qr-overlay">
+            <div class="qr-title">QR Code</div>
+            <div id="qrcode" class="qr-code"></div>
+            <div class="qr-subtitle" id="qrSubtitle">Scan to view photos</div>
+        </div>
+        
+        <!-- Clickable area for Done button (CORRECTLY POSITIONED) -->
+        <div class="done-button-area" 
+             onclick="goToStart()" 
+             ontouchstart="console.log('Done button touched')"
+             onmousedown="console.log('Done button clicked')">
+        </div>
     </div>
 
     <script>
-        let photoData = [];
+        let video = document.getElementById('video');
+        let captureVideo = document.getElementById('captureVideo');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let currentFilter = 'none';
+        let capturedPhotos = [];
+        let isCapturing = false;
 
-        // Get photo data from URL parameters or localStorage - ENHANCED DEBUGGING
-        function getPhotoData() {
-            console.log('🔍 Starting photo data retrieval...');
-            console.log('🔗 Current URL:', window.location.href);
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            console.log('📋 URL Parameters:', Object.fromEntries(urlParams));
-            
-            // Method 1: Direct photo encoding (tablet → phone via QR)
-            const photoParam = urlParams.get('photos');
-            if (photoParam) {
-                try {
-                    photoData = JSON.parse(decodeURIComponent(photoParam));
-                    console.log('✅ Photos loaded directly from QR code:', photoData.length, 'photos');
-                    return;
-                } catch (e) {
-                    console.log('❌ Could not parse direct photo data:', e);
+        let audioPool = [];
+        const AUDIO_POOL_SIZE = 5;
+
+        // Create multiple audio instances for iPad (prevents reuse issues)
+        function createAudioPool() {
+            try {
+                audioPool = [];
+                for (let i = 0; i < AUDIO_POOL_SIZE; i++) {
+                    const audio = new Audio('effect.mp3');
+                    audio.volume = 1.0;
+                    audio.preload = 'auto';
+                    audio.load();
+                    audioPool.push(audio);
                 }
-            }
-            
-            // Method 2: Photo ID system (fallback)
-            const photoId = urlParams.get('id');
-            if (photoId) {
-                try {
-                    const storedPhotos = localStorage.getItem(photoId);
-                    if (storedPhotos) {
-                        const parsed = JSON.parse(storedPhotos);
-                        photoData = parsed.photos || parsed; // Handle both formats
-                        console.log('✅ Photos loaded from photo ID:', photoId, '-', photoData.length, 'photos');
-                        return;
-                    } else {
-                        console.log('❌ No photos found for ID:', photoId);
-                        showCrossDeviceMessage(photoId);
-                        return;
-                    }
-                } catch (e) {
-                    console.log('❌ Could not parse photo ID data:', e);
-                }
-            }
-            
-            // Method 3: Session system (primary method)
-            const sessionId = urlParams.get('session');
-            if (sessionId) {
-                console.log('🔑 Looking for session:', sessionId);
-                try {
-                    const storedPhotos = localStorage.getItem(sessionId);
-                    if (storedPhotos) {
-                        console.log('📦 Found stored data, parsing...');
-                        const sessionData = JSON.parse(storedPhotos);
-                        
-                        // Handle both old and new data formats
-                        if (Array.isArray(sessionData)) {
-                            photoData = sessionData; // Old format
-                        } else if (sessionData.photos) {
-                            photoData = sessionData.photos; // New format
-                        } else {
-                            photoData = []; 
-                        }
-                        
-                        console.log('✅ Photos loaded from session:', sessionId, '-', photoData.length, 'photos');
-                        console.log('📸 Session data:', {
-                            photoCount: photoData.length,
-                            filter: sessionData.filter || 'unknown',
-                            timestamp: sessionData.timestamp || 'unknown'
-                        });
-                        return;
-                    } else {
-                        console.log('❌ No data found for session:', sessionId);
-                        console.log('🔍 Available localStorage keys:', Object.keys(localStorage));
-                        showSessionNotFound(sessionId);
-                        return;
-                    }
-                } catch (e) {
-                    console.log('❌ Could not parse session data:', e);
-                    showSessionNotFound(sessionId);
-                    return;
-                }
-            }
-
-            // No valid parameters found
-            console.log('❌ No valid URL parameters found');
-            console.log('🔍 Available URL params:', [...urlParams.keys()]);
-            console.log('📦 Available localStorage:', Object.keys(localStorage));
-            
-            // Fallback: show placeholder
-            console.log('🎭 Using placeholder photos');
-            photoData = generatePlaceholderPhotos();
-        }
-
-        // Show message when session is not found
-        function showSessionNotFound(sessionId) {
-            document.getElementById('loadingMessage').innerHTML = `
-                <div style="text-align: center; padding: 20px;">
-                    <h3 style="color: #654321; margin-bottom: 15px;">Session Not Found</h3>
-                    <p style="color: #654321; margin-bottom: 10px;">
-                        Could not find photos for session: <code>${sessionId}</code>
-                    </p>
-                    <p style="color: #654321; font-size: 0.9em; margin-bottom: 15px;">
-                        This may happen if:
-                    </p>
-                    <ul style="color: #654321; font-size: 0.9em; text-align: left; max-width: 300px; margin: 0 auto;">
-                        <li>The QR code was scanned on a different device</li>
-                        <li>Browser data was cleared</li>
-                        <li>The session expired</li>
-                    </ul>
-                    <p style="color: #654321; font-size: 0.8em; margin-top: 15px;">
-                        Try scanning the QR code on the same device that took the photos.
-                    </p>
-                </div>
-            `;
-            
-            // Still show the gallery container with placeholders
-            photoData = generatePlaceholderPhotos();
-        }
-
-        // Show message when someone scans QR from different device but photos aren't available
-        function showCrossDeviceMessage(photoId) {
-            document.getElementById('loadingMessage').innerHTML = `
-                <div style="text-align: center; padding: 20px;">
-                    <h3 style="color: #654321; margin-bottom: 15px;">Photos Not Found</h3>
-                    <p style="color: #654321; margin-bottom: 10px;">
-                        The photos might be stored on the photo booth device.
-                    </p>
-                    <p style="color: #654321; font-size: 0.9em;">
-                        Photo ID: <code>${photoId}</code>
-                    </p>
-                    <p style="color: #654321; font-size: 0.8em; margin-top: 15px;">
-                        Ask the photo booth operator to help you access your photos!
-                    </p>
-                </div>
-            `;
-            
-            // Still show the gallery container with placeholders
-            photoData = generatePlaceholderPhotos();
-        }
-
-        // Generate placeholder photos for testing
-        function generatePlaceholderPhotos() {
-            const placeholders = [];
-            for (let i = 0; i < 3; i++) {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = 400;
-                canvas.height = 300;
-                
-                // Create a gradient background
-                const gradient = ctx.createLinearGradient(0, 0, 400, 300);
-                gradient.addColorStop(0, '#F5DEB3');
-                gradient.addColorStop(1, '#DEB887');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, 400, 300);
-                
-                // Add text
-                ctx.fillStyle = '#654321';
-                ctx.font = 'bold 48px Georgia';
-                ctx.textAlign = 'center';
-                ctx.fillText(`Photo ${i + 1}`, 200, 120);
-                ctx.font = '24px Georgia';
-                ctx.fillText("Brittany's 22nd BDAY", 200, 160);
-                ctx.fillText('🤠 Mexican Western 🌵', 200, 200);
-                
-                placeholders.push(canvas.toDataURL('image/png'));
-            }
-            return placeholders;
-        }
-
-        // Display photos in the gallery - photos already have filters applied
-        function displayPhotos() {
-            photoData.forEach((photo, index) => {
-                const photoSlot = document.getElementById(`photoSlot${index + 1}`);
-                if (photoSlot && photo) {
-                    const img = document.createElement('img');
-                    img.src = photo;
-                    img.className = 'gallery-photo';
-                    img.alt = `Photo ${index + 1}`;
-                    photoSlot.appendChild(img);
-                    console.log(`Photo ${index + 1} displayed with embedded filters`);
-                }
-            });
-
-            // Hide loading message
-            const loadingMsg = document.getElementById('loadingMessage');
-            if (loadingMsg) {
-                loadingMsg.style.display = 'none';
+                console.log(`✅ Created audio pool with ${AUDIO_POOL_SIZE} instances`);
+            } catch (error) {
+                console.error('Audio pool creation failed:', error);
             }
         }
 
-        // Save photos to device gallery - captures the exact display
-        async function saveToGallery() {
-            console.log('Save to gallery clicked');
-            
-            // Add visual feedback that processing is happening
-            const saveButton = document.querySelector('.save-button');
-            const originalText = saveButton.innerHTML;
-            saveButton.innerHTML = '<span class="button-text">Processing...</span>';
-            saveButton.disabled = true;
+        // Play camera effect sound - FIXED FOR REPEATED PLAYBACK ON iPAD
+        function playCameraEffect() {
+            console.log('🔊 Playing effect...');
             
             try {
-                // Capture the gallery as it appears on screen
-                await captureGalleryDisplay();
-
-                // Show success message
-                showSuccessMessage();
-
-            } catch (error) {
-                console.error('Error saving photos:', error);
-                alert('Sorry, there was an error saving your photos. Please try again.');
-            } finally {
-                // Restore button
-                saveButton.innerHTML = originalText;
-                saveButton.disabled = false;
-            }
-        }
-
-        // Capture the gallery exactly as displayed with album background and positioned photos
-        async function captureGalleryDisplay() {
-            console.log('Starting gallery capture...');
-            
-            const galleryContainer = document.getElementById('galleryContainer');
-            const containerRect = galleryContainer.getBoundingClientRect();
-            
-            // Create a canvas with the same dimensions as the gallery container
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Set canvas size to match the gallery container (reduced scale to prevent freezing)
-            const scale = 2; // Reduced from 3 to prevent performance issues
-            canvas.width = containerRect.width * scale;
-            canvas.height = containerRect.height * scale;
-            ctx.scale(scale, scale);
-            
-            try {
-                console.log('Loading album background...');
-                // Load and draw the actual album.png background
-                const albumBackground = await createAlbumBackground(containerRect.width, containerRect.height);
-                ctx.drawImage(albumBackground, 0, 0, containerRect.width, containerRect.height);
-                console.log('Album background loaded successfully');
+                // Get a fresh audio instance from the pool
+                const audio = audioPool.shift(); // Remove from front
                 
-                // Draw each captured photo sequentially instead of all at once
-                console.log('Drawing photos...');
-                for (let i = 1; i <= 3; i++) {
-                    const photoSlot = document.getElementById(`photoSlot${i}`);
-                    const img = photoSlot.querySelector('.gallery-photo');
+                if (audio) {
+                    // Reset the audio to beginning
+                    audio.currentTime = 0;
                     
-                    if (img && img.src && photoData[i-1]) {
-                        console.log(`Drawing photo ${i}...`);
-                        await drawPhotoToCanvas(ctx, photoData[i-1], photoSlot, galleryContainer);
-                        console.log(`Photo ${i} drawn successfully`);
-                        
-                        // Small delay to prevent browser from freezing
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                    const playPromise = audio.play();
+                    if (playPromise) {
+                        playPromise
+                            .then(() => {
+                                console.log('✅ Effect played successfully');
+                                // Put the audio back in the pool after a delay
+                                setTimeout(() => {
+                                    audioPool.push(audio);
+                                }, 5000);
+                            })
+                            .catch(error => {
+                                console.error('Audio playback failed:', error);
+                                // Put it back anyway
+                                audioPool.push(audio);
+                                playBeepSound();
+                            });
+                    } else {
+                        audio.play();
+                        setTimeout(() => {
+                            audioPool.push(audio);
+                        }, 5000);
                     }
+                } else {
+                    console.log('No audio instances available, creating new one');
+                    // Create a new instance if pool is empty
+                    const newAudio = new Audio('effect.mp3');
+                    newAudio.volume = 1.0;
+                    newAudio.currentTime = 0;
+                    newAudio.play().catch(() => playBeepSound());
                 }
                 
-                console.log('All photos drawn, generating download...');
-                
-                // Download the captured gallery with album.png background and real photos
-                const link = document.createElement('a');
-                link.download = 'Brittany_22nd_BDAY_Gallery.png';
-                link.href = canvas.toDataURL('image/png', 0.9); // Reduced quality slightly
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                console.log('Download initiated successfully');
-                
             } catch (error) {
-                console.error('Error in captureGalleryDisplay:', error);
-                throw error;
+                console.error('Effect playback failed:', error);
+                playBeepSound();
             }
         }
 
-        // Load the actual album.png background
-        async function createAlbumBackground(width, height) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    // Draw the album.png background to fill the canvas
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas);
-                };
-                img.onerror = () => {
-                    // Fallback if album.png can't be loaded
-                    console.log('Could not load album.png, using fallback background');
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    // Create a simple fallback background
-                    const gradient = ctx.createLinearGradient(0, 0, width, height);
-                    gradient.addColorStop(0, '#8B4513');
-                    gradient.addColorStop(1, '#D2B48C');
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, width, height);
-                    
-                    resolve(canvas);
-                };
-                img.src = 'album.png'; // Load the actual album.png file
-            });
+        // Enhanced beep for fallback
+        function playBeepSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 1000; // Camera-like beep
+                gainNode.gain.setValueAtTime(0.8, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.3);
+                
+                console.log('✅ Beep sound played');
+            } catch (error) {
+                console.error('Beep sound failed:', error);
+            }
         }
 
-        // Draw photo to canvas at exact position using original photo data
-        function drawPhotoToCanvas(ctx, photoSrc, photoSlot, galleryContainer) {
-            return new Promise((resolve, reject) => {
-                const tempImg = new Image();
+        // Initialize camera
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                video.srcObject = stream;
+                captureVideo.srcObject = stream;
                 
-                // Set a timeout to prevent hanging
-                const timeout = setTimeout(() => {
-                    console.log('Photo loading timed out');
-                    reject(new Error('Photo loading timeout'));
-                }, 5000); // 5 second timeout
+                // Make sure videos are visible
+                video.style.display = 'block';
+                captureVideo.style.display = 'block';
                 
-                tempImg.onload = () => {
-                    clearTimeout(timeout);
-                    try {
-                        const slotRect = photoSlot.getBoundingClientRect();
-                        const containerRect = galleryContainer.getBoundingClientRect();
-                        
-                        // Calculate relative position within the container (matching CSS percentages)
-                        const x = (slotRect.left - containerRect.left);
-                        const y = (slotRect.top - containerRect.top);
-                        const width = slotRect.width;
-                        const height = slotRect.height;
-                        
-                        // Draw the high-quality original image at the exact position
-                        ctx.drawImage(tempImg, x, y, width, height);
-                        console.log('Photo drawn to canvas successfully');
-                        resolve();
-                    } catch (error) {
-                        console.error('Error drawing image to canvas:', error);
-                        resolve(); // Continue even if drawing fails
-                    }
-                };
-                
-                tempImg.onerror = (error) => {
-                    clearTimeout(timeout);
-                    console.log('Could not load photo for canvas:', error);
-                    resolve(); // Continue even if image fails
-                };
-                
-                // Use the original photo data for better quality
-                tempImg.src = photoSrc;
-            });
+                console.log('Camera initialized successfully');
+            } catch (err) {
+                console.error('Camera error:', err);
+                alert('Camera access denied. Please allow camera access and refresh the page.');
+            }
         }
 
-        // Show success message
-        function showSuccessMessage() {
-            const successMsg = document.getElementById('successMessage');
-            successMsg.style.display = 'block';
+        // Page Navigation
+        function showPage(pageId) {
+            console.log('Showing page:', pageId);
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function goToFilterPage() {
+            showPage('filterPage');
             
+            // Create audio pool for repeated playback on iPad
+            createAudioPool();
+            
+            // Add a small delay to ensure page is loaded before initializing camera
             setTimeout(() => {
-                successMsg.style.display = 'none';
-            }, 3000);
+                initCamera();
+            }, 100);
         }
 
-        // Initialize the gallery
+        function goToStart() {
+            console.log('=== DONE/BACK BUTTON PRESSED ===');
+            
+            // Stop any ongoing camera streams
+            try {
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+                if (captureVideo.srcObject) {
+                    captureVideo.srcObject.getTracks().forEach(track => track.stop());
+                }
+            } catch (error) {
+                console.log('Error stopping camera:', error);
+            }
+            
+            // Store photos silently for admin access later - NO DOWNLOADS
+            if (capturedPhotos && capturedPhotos.length > 0) {
+                try {
+                    console.log('📁 Storing photos for later admin access...');
+                    storePhotosForAdmin();
+                    console.log('✅ Photos stored successfully - no downloads triggered');
+                } catch (error) {
+                    console.error('Photo storage failed:', error);
+                }
+            }
+            
+            // Complete reset of all variables and UI state
+            capturedPhotos = [];
+            currentFilter = 'none';
+            isCapturing = false;
+            
+            // Clear all photo displays
+            document.getElementById('photo1').innerHTML = '';
+            document.getElementById('photo2').innerHTML = '';
+            document.getElementById('photo3').innerHTML = '';
+            
+            // Clear QR code
+            document.getElementById('qrcode').innerHTML = '';
+            
+            // Hide countdown and progress elements
+            document.getElementById('countdownContainer').classList.add('hidden');
+            document.getElementById('progressBar').classList.add('hidden');
+            document.getElementById('capturedMessage').classList.add('hidden');
+            
+            // Reset video filters
+            video.style.filter = 'none';
+            captureVideo.style.filter = 'none';
+            
+            // Go back to start page
+            showPage('startPage');
+            clearOldPhotoSessions();
+            
+            console.log('Successfully returned to start page - complete reset done');
+        }
+
+        // Store photos in persistent storage for later admin access
+        function storePhotosForAdmin() {
+            try {
+                const timestamp = Date.now();
+                const sessionKey = `photos_session_${timestamp}`;
+                
+                const sessionData = {
+                    timestamp: timestamp,
+                    date: new Date().toLocaleString(),
+                    filter: currentFilter,
+                    photos: capturedPhotos.filter(photo => photo !== null)
+                };
+                
+                // Store this session's photos
+                localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+                
+                // Keep a master list of all sessions for admin page
+                let allSessions = [];
+                try {
+                    const existingSessions = localStorage.getItem('admin_photo_sessions');
+                    if (existingSessions) {
+                        allSessions = JSON.parse(existingSessions);
+                    }
+                } catch (e) {
+                    console.log('No existing sessions found');
+                }
+                
+                // Add this session to the master list
+                allSessions.push({
+                    sessionKey: sessionKey,
+                    timestamp: timestamp,
+                    date: new Date().toLocaleString(),
+                    filter: currentFilter,
+                    photoCount: sessionData.photos.length
+                });
+                
+                // Keep only the last 50 sessions to prevent storage overflow
+                if (allSessions.length > 50) {
+                    const oldSessions = allSessions.slice(0, -50);
+                    oldSessions.forEach(session => {
+                        localStorage.removeItem(session.sessionKey);
+                    });
+                    allSessions = allSessions.slice(-50);
+                }
+                
+                localStorage.setItem('admin_photo_sessions', JSON.stringify(allSessions));
+                
+                console.log(`📁 Photos stored in session: ${sessionKey}`);
+                console.log(`📊 Total sessions: ${allSessions.length}`);
+                
+            } catch (error) {
+                console.error('Failed to store photos for admin:', error);
+            }
+        }
+
+        // Clear old photo sessions to prevent localStorage from getting full
+        function clearOldPhotoSessions() {
+            try {
+                const keys = Object.keys(localStorage);
+                const photoKeys = keys.filter(key => key.startsWith('photos_') || key.startsWith('session_'));
+                
+                // Keep only the 5 most recent sessions
+                if (photoKeys.length > 5) {
+                    const sortedKeys = photoKeys.sort().slice(0, -5);
+                    sortedKeys.forEach(key => {
+                        localStorage.removeItem(key);
+                        console.log('Removed old session:', key);
+                    });
+                }
+            } catch (error) {
+                console.log('Could not clear old sessions:', error);
+            }
+        }
+
+        // Set filter
+        function setFilter(filter) {
+            console.log('Filter selected:', filter);
+            currentFilter = filter;
+            
+            // Apply filter to video preview
+            video.style.filter = getFilterCSS(filter);
+            captureVideo.style.filter = getFilterCSS(filter);
+            
+            // Start capture sequence after filter selection
+            setTimeout(() => {
+                startCaptureSequence();
+            }, 1000);
+        }
+
+        // Get CSS filter (REMOVED BALLOON EFFECTS)
+        function getFilterCSS(filter) {
+            switch(filter) {
+                case 'sepia': return 'sepia(1) contrast(1.2) brightness(1.1) saturate(1.3)';
+                case 'grayscale': return 'grayscale(1) contrast(1.2)';
+                case 'sunset': return 'saturate(1.6) brightness(1.1) contrast(1.2) hue-rotate(15deg) sepia(0.3)';
+                default: return 'none'; // Removed sparkle filter
+            }
+        }
+
+        // Start capture sequence
+        async function startCaptureSequence() {
+            if (isCapturing) return;
+            
+            console.log('Starting capture sequence');
+            isCapturing = true;
+            capturedPhotos = [];
+            
+            showPage('capturePage');
+            
+            const countdownContainer = document.getElementById('countdownContainer');
+            const progressBar = document.getElementById('progressBar');
+            
+            progressBar.classList.remove('hidden');
+
+            try {
+                for (let i = 0; i < 3; i++) {
+                    console.log(`Capturing photo ${i + 1}`);
+                    progressBar.textContent = `Photo ${i + 1} of 3`;
+                    
+                    // 5 second countdown with voice
+                    await countdown();
+                    
+                    // Capture photo with filter applied
+                    const photoData = capturePhotoWithFilter();
+                    capturedPhotos.push(photoData);
+                    console.log(`Photo ${i + 1} captured successfully with filter: ${currentFilter}`);
+                    
+                    // Brief pause between photos (except after the last one)
+                    if (i < 2) {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                }
+
+                console.log('All photos captured, showing results...');
+                // Show results
+                showResults();
+                
+            } catch (error) {
+                console.error('Error in capture sequence:', error);
+                alert('There was an error capturing photos. Please try again.');
+            } finally {
+                isCapturing = false;
+            }
+        }
+
+        // Countdown function - EFFECT PLAYS 1.5 SECONDS BEFORE CAPTURE
+        async function countdown() {
+            const countdownContainer = document.getElementById('countdownContainer');
+            const countdownNumber = document.getElementById('countdownNumber');
+            const countdownText = document.getElementById('countdownText');
+            
+            countdownContainer.classList.remove('hidden');
+            
+            for (let i = 5; i > 0; i--) {
+                countdownNumber.textContent = i;
+                countdownText.textContent = 'Get Ready!';
+                
+                // Start effect.mp3 when countdown hits 2 (1.5 seconds before capture)
+                if (i === 2) {
+                    playCameraEffect();
+                    console.log('Effect started at countdown 2 (1.5 seconds before capture)');
+                }
+                
+                console.log(`Countdown: ${i}`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            countdownNumber.textContent = 'SMILE';
+            countdownText.textContent = 'Say "Howdy!"';
+            // NO DELAY - IMMEDIATE CAPTURE
+            
+            countdownContainer.classList.add('hidden');
+        }
+
+        // Show captured message with Mexican Western flair
+        function showCapturedMessage() {
+            const capturedMsg = document.getElementById('capturedMessage');
+            if (capturedMsg) {
+                capturedMsg.classList.remove('hidden');
+                
+                // Hide after 1.5 seconds
+                setTimeout(() => {
+                    capturedMsg.classList.add('hidden');
+                }, 1500);
+            }
+        }
+
+        // Capture individual photo WITH FILTER APPLIED - NO SOUND (ALREADY PLAYING)
+        function capturePhotoWithFilter() {
+            try {
+                console.log('📸 Photo captured');
+                
+                // Show captured message
+                showCapturedMessage();
+                
+                canvas.width = captureVideo.videoWidth;
+                canvas.height = captureVideo.videoHeight;
+                
+                // First draw the video frame normally
+                ctx.drawImage(captureVideo, 0, 0);
+                
+                // Then apply the filter using canvas manipulation for consistent results
+                if (currentFilter !== 'none') {
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const filteredImageData = applyCanvasFilter(imageData, currentFilter);
+                    ctx.putImageData(filteredImageData, 0, 0);
+                }
+                
+                return canvas.toDataURL('image/png');
+            } catch (error) {
+                console.error('Error capturing photo:', error);
+                return null;
+            }
+        }
+
+        // Apply filter using canvas pixel manipulation for consistent results (NO BALLOON EFFECTS)
+        function applyCanvasFilter(imageData, filter) {
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                switch(filter) {
+                    case 'grayscale':
+                        const gray = r * 0.299 + g * 0.587 + b * 0.114;
+                        data[i] = gray * 1.2;     // Add contrast
+                        data[i + 1] = gray * 1.2;
+                        data[i + 2] = gray * 1.2;
+                        break;
+                        
+                    case 'sepia':
+                        data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189)) * 1.2;
+                        data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168)) * 1.1;
+                        data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131)) * 1.1;
+                        break;
+                        
+                    case 'sunset':
+                        data[i] = Math.min(255, r * 1.6);     // Enhanced red
+                        data[i + 1] = Math.min(255, g * 1.2); // Slight green boost
+                        data[i + 2] = Math.min(255, b * 0.8); // Reduce blue
+                        break;
+                        
+                    // Removed sparkle case - no more balloon effects
+                }
+            }
+            
+            return imageData;
+        }
+
+        // Show results - TOUCHSCREEN & QR FIXED VERSION
+        function showResults() {
+            console.log('=== SHOWING RESULTS PAGE ===');
+            
+            try {
+                // Display photos in strip first
+                console.log('Displaying photos in strip...');
+                capturedPhotos.forEach((photoData, index) => {
+                    if (photoData) {
+                        const photoSlot = document.getElementById(`photo${index + 1}`);
+                        if (photoSlot) {
+                            const img = document.createElement('img');
+                            img.src = photoData;
+                            img.className = 'strip-photo';
+                            img.alt = `Photo ${index + 1}`;
+                            photoSlot.innerHTML = '';
+                            photoSlot.appendChild(img);
+                            console.log(`Photo ${index + 1} displayed successfully with filter: ${currentFilter}`);
+                        }
+                    }
+                });
+                
+                // Show the result page immediately
+                console.log('Switching to result page...');
+                showPage('resultPage');
+                
+                // Generate QR code with a delay to ensure page is loaded
+                console.log('Generating QR code...');
+                setTimeout(() => {
+                    generateQRCodeWithFallback();
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error in showResults:', error);
+                // Still show the page even if there are errors
+                showPage('resultPage');
+            }
+        }
+
+        // Generate QR code with enhanced error handling and fallbacks
+        function generateQRCodeWithFallback() {
+            console.log('=== QR CODE GENERATION START ===');
+            
+            const qrContainer = document.getElementById('qrcode');
+            if (!qrContainer) {
+                console.error('QR container not found!');
+                return;
+            }
+            
+            // Show loading message first
+            qrContainer.innerHTML = '<div style="color: white; padding: 10px; font-size: 0.8em;">Generating QR...</div>';
+            
+            try {
+                const validPhotos = capturedPhotos.filter(photo => photo !== null);
+                console.log('Valid photos count:', validPhotos.length);
+                
+                if (validPhotos.length === 0) {
+                    console.error('No valid photos found');
+                    qrContainer.innerHTML = '<div style="color: white; padding: 10px; font-size: 0.8em;">No photos found</div>';
+                    return;
+                }
+                
+                // Create session ID with current timestamp
+                const sessionId = 'session_' + Date.now();
+                console.log('Creating session ID:', sessionId);
+                
+                // Store photos in localStorage with session data
+                try {
+                    const sessionData = {
+                        photos: validPhotos,
+                        timestamp: Date.now(),
+                        filter: currentFilter,
+                        date: new Date().toLocaleString()
+                    };
+                    localStorage.setItem(sessionId, JSON.stringify(sessionData));
+                    console.log('✅ Photos stored in localStorage with key:', sessionId);
+                } catch (storageError) {
+                    console.error('❌ localStorage failed:', storageError);
+                    qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">Storage Error<br>Photos saved locally</div>';
+                    return;
+                }
+                
+                // Create QR code URL - try multiple approaches
+                let qrUrl;
+                try {
+                    // Method 1: Full URL
+                    const currentUrl = window.location.href;
+                    const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+                    qrUrl = `${baseUrl}gallery.html?session=${sessionId}`;
+                    console.log('🔗 Full QR URL:', qrUrl);
+                } catch (urlError) {
+                    // Method 2: Relative URL fallback
+                    qrUrl = `gallery.html?session=${sessionId}`;
+                    console.log('🔗 Relative QR URL:', qrUrl);
+                }
+                
+                // Generate QR code with multiple attempts
+                let qrGenerated = false;
+                
+                // Attempt 1: Standard QR generation
+                try {
+                    console.log('🔄 Attempting QR generation...');
+                    
+                    if (typeof qrcode === 'undefined') {
+                        throw new Error('QR code library not loaded');
+                    }
+                    
+                    const qr = qrcode(0, 'L'); // Low error correction
+                    qr.addData(qrUrl);
+                    qr.make();
+                    
+                    const qrImage = qr.createImgTag(8, 0);
+                    qrContainer.innerHTML = qrImage;
+                    qrGenerated = true;
+                    
+                    console.log('✅ QR CODE GENERATED SUCCESSFULLY!');
+                    
+                } catch (qrError) {
+                    console.error('❌ Standard QR generation failed:', qrError);
+                }
+                
+                // Attempt 2: Smaller QR code if first attempt failed
+                if (!qrGenerated) {
+                    try {
+                        console.log('🔄 Attempting smaller QR code...');
+                        const qr = qrcode(0, 'M'); // Medium error correction
+                        qr.addData(qrUrl);
+                        qr.make();
+                        
+                        const qrImage = qr.createImgTag(6, 0); // Smaller size
+                        qrContainer.innerHTML = qrImage;
+                        qrGenerated = true;
+                        
+                        console.log('✅ Smaller QR code generated successfully!');
+                        
+                    } catch (qrError2) {
+                        console.error('❌ Smaller QR generation failed:', qrError2);
+                    }
+                }
+                
+                // Attempt 3: Minimal QR code
+                if (!qrGenerated) {
+                    try {
+                        console.log('🔄 Attempting minimal QR code...');
+                        const qr = qrcode(0, 'L');
+                        qr.addData(`gallery.html?s=${sessionId.slice(-8)}`); // Short URL
+                        qr.make();
+                        
+                        const qrImage = qr.createImgTag(4, 0); // Even smaller
+                        qrContainer.innerHTML = qrImage;
+                        qrGenerated = true;
+                        
+                        console.log('✅ Minimal QR code generated successfully!');
+                        
+                    } catch (qrError3) {
+                        console.error('❌ Minimal QR generation failed:', qrError3);
+                    }
+                }
+                
+                // Final fallback: Show session info
+                if (!qrGenerated) {
+                    console.error('❌ All QR generation attempts failed');
+                    qrContainer.innerHTML = `
+                        <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
+                            <strong>Photos Ready!</strong><br>
+                            Session: ${sessionId.slice(-8)}<br>
+                            <small>Visit gallery.html manually<br>
+                            or check admin page</small>
+                        </div>
+                    `;
+                } else {
+                    // AUTO-DOWNLOAD QR CODE IMAGE if generation succeeded
+                    setTimeout(() => {
+                        try {
+                            const qrImg = qrContainer.querySelector('img');
+                            if (qrImg && qrImg.src) {
+                                const link = document.createElement('a');
+                                link.download = `QR_Code_${sessionId.slice(-8)}.png`;
+                                link.href = qrImg.src;
+                                link.style.display = 'none';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                console.log('🔽 QR code auto-downloaded');
+                            }
+                        } catch (downloadError) {
+                            console.log('QR download failed:', downloadError);
+                        }
+                    }, 1000);
+                }
+                
+                // Update subtitle
+                const subtitle = document.getElementById('qrSubtitle');
+                if (subtitle) {
+                    subtitle.textContent = qrGenerated ? 'Scan to view photos!' : 'Photos saved - check admin';
+                }
+                
+            } catch (error) {
+                console.error('❌ QR generation error:', error);
+                qrContainer.innerHTML = `
+                    <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">
+                        Photos Captured!<br>
+                        <small>Check admin page for photos</small>
+                    </div>
+                `;
+            }
+        }
+
+        // Convert data URL to blob
+        function dataURLtoBlob(dataurl) {
+            var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+            while(n--){
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], {type:mime});
+        }
+
+        // Initialize on load
         window.addEventListener('load', () => {
-            getPhotoData();
-            displayPhotos();
+            console.log('Page loaded');
+            // Test camera availability
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                console.log('Camera API available');
+            } else {
+                console.error('Camera API not available');
+                alert('Camera not supported on this device/browser');
+            }
         });
     </script>
 </body>
