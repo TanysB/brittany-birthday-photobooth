@@ -270,29 +270,20 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
-        /* Done button area - ENHANCED CLICKABILITY */
+        /* Done button area - POSITIONED CORRECTLY */
         .done-button-area {
             position: absolute;
-            bottom: 15%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40%;
-            height: 12%;
+            bottom: 25%;
+            right: 15%;
+            width: 25%;
+            height: 10%;
             cursor: pointer;
             touch-action: manipulation;
             z-index: 1000;
-            /* Add visible border for testing - remove after confirming it works */
-            border: 2px solid rgba(255, 0, 0, 0.3);
-            background: rgba(0, 255, 0, 0.1);
-        }
-
-        .done-button-area:hover {
-            background: rgba(0, 255, 0, 0.2);
         }
 
         .done-button-area:active {
-            background: rgba(0, 255, 0, 0.4);
-            transform: translateX(-50%) scale(0.95);
+            transform: scale(0.95);
         }
 
         .hidden {
@@ -386,13 +377,11 @@
             <div class="qr-subtitle" id="qrSubtitle">Scan to view photos</div>
         </div>
         
-        <!-- Clickable area for Done button (ENHANCED CLICKABILITY) -->
+        <!-- Clickable area for Done button (CORRECTLY POSITIONED) -->
         <div class="done-button-area" 
              onclick="goToStart()" 
-             ontouchstart="console.log('Touch started on done button')"
-             ontouchend="console.log('Touch ended on done button')"
-             onmousedown="console.log('Mouse down on done button')"
-             onmouseup="console.log('Mouse up on done button')">
+             ontouchstart="console.log('Done button touched')"
+             onmousedown="console.log('Done button clicked')">
         </div>
     </div>
 
@@ -648,7 +637,7 @@
             }
         }
 
-        // Countdown function - silent countdown, sound effect on photo capture
+        // Countdown function - sound effect starts much earlier to sync with photo capture
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -659,17 +648,19 @@
             for (let i = 5; i > 0; i--) {
                 countdownNumber.textContent = i;
                 countdownText.textContent = 'Get Ready!';
+                
+                // Start effect.mp3 when countdown hits 3 (2 seconds before photo capture)
+                if (i === 3) {
+                    playCameraEffect();
+                    console.log('Effect started at countdown 3');
+                }
+                
                 console.log(`Countdown: ${i}`);
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
             countdownNumber.textContent = 'SMILE';
             countdownText.textContent = 'Say "Howdy!"';
-            
-            // Start effect.mp3 early so it peaks right when photo is captured
-            // Since effect.mp3 is 4 seconds long, start it 3.5 seconds early
-            playCameraEffect();
-            
             await new Promise(resolve => setTimeout(resolve, 500));
             
             countdownContainer.classList.add('hidden');
