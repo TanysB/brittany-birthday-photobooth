@@ -176,42 +176,67 @@
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('session');
             
+            console.log(`🎯 Session ID from URL: ${sessionId}`);
+            
             if (sessionId) {
-                console.log(`🎯 Looking for session: ${sessionId}`);
+                console.log(`🔍 Looking for session: ${sessionId}`);
                 
                 // Try to find this specific session in localStorage
                 try {
                     const sessionData = localStorage.getItem(sessionId);
+                    console.log(`📂 localStorage data for ${sessionId}:`, sessionData ? 'Found' : 'Not found');
+                    
                     if (sessionData) {
                         const parsed = JSON.parse(sessionData);
+                        console.log(`📋 Parsed data:`, parsed);
+                        
                         if (parsed.photos && parsed.photos.length > 0) {
                             console.log(`✅ Found ${parsed.photos.length} photos for session ${sessionId} in localStorage`);
                             photoData = parsed.photos;
+                            
+                            // Debug: Show first photo data snippet
+                            console.log(`📸 First photo preview: ${parsed.photos[0] ? parsed.photos[0].substring(0, 50) + '...' : 'null'}`);
                             return true;
+                        } else {
+                            console.log('❌ Photos array is empty or missing');
                         }
                     }
                 } catch (e) {
-                    console.log('❌ localStorage lookup failed');
+                    console.log('❌ localStorage lookup failed:', e);
                 }
                 
                 // Try sessionStorage
                 try {
                     const sessionData = sessionStorage.getItem(sessionId);
+                    console.log(`📂 sessionStorage data for ${sessionId}:`, sessionData ? 'Found' : 'Not found');
+                    
                     if (sessionData) {
                         const parsed = JSON.parse(sessionData);
+                        console.log(`📋 Parsed sessionStorage data:`, parsed);
+                        
                         if (parsed.photos && parsed.photos.length > 0) {
                             console.log(`✅ Found ${parsed.photos.length} photos for session ${sessionId} in sessionStorage`);
                             photoData = parsed.photos;
+                            
+                            // Debug: Show first photo data snippet
+                            console.log(`📸 First photo preview: ${parsed.photos[0] ? parsed.photos[0].substring(0, 50) + '...' : 'null'}`);
                             return true;
+                        } else {
+                            console.log('❌ Photos array is empty or missing in sessionStorage');
                         }
                     }
                 } catch (e) {
-                    console.log('❌ sessionStorage lookup failed');
+                    console.log('❌ sessionStorage lookup failed:', e);
                 }
                 
-                console.log(`❌ Session ${sessionId} not found in storage`);
+                console.log(`❌ Session ${sessionId} not found in any storage`);
+                
+                // Debug: Show what keys ARE available
+                console.log('🔍 Available localStorage keys:', Object.keys(localStorage));
+                console.log('🔍 Available sessionStorage keys:', Object.keys(sessionStorage));
+                
             } else {
-                console.log('🔄 No session parameter - searching for any recent photos...');
+                console.log('⚠️ No session parameter in URL - searching for any recent photos...');
                 
                 // Fallback: Look for any recent photos if no session specified
                 return loadAnyRecentPhotos();
@@ -229,6 +254,8 @@
                 const allKeys = Object.keys(localStorage);
                 const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
                 
+                console.log(`📂 Found ${sessionKeys.length} session keys in localStorage:`, sessionKeys);
+                
                 // Sort by timestamp (newest first)
                 sessionKeys.sort((a, b) => {
                     const timestampA = parseInt(a.split('_')[1]) || 0;
@@ -236,7 +263,7 @@
                     return timestampB - timestampA;
                 });
                 
-                console.log(`Found ${sessionKeys.length} sessions in localStorage`);
+                console.log(`📅 Sorted session keys (newest first):`, sessionKeys);
                 
                 // Try the most recent session
                 for (const key of sessionKeys) {
@@ -244,18 +271,23 @@
                         const data = localStorage.getItem(key);
                         if (data) {
                             const parsed = JSON.parse(data);
+                            console.log(`📋 Checking session ${key}:`, parsed);
+                            
                             if (parsed.photos && parsed.photos.length > 0) {
-                                console.log(`✅ Using fallback photos from session: ${key}`);
+                                console.log(`✅ Using fallback photos from session: ${key} (${parsed.photos.length} photos)`);
                                 photoData = parsed.photos;
+                                
+                                // Debug: Show first photo data snippet
+                                console.log(`📸 First fallback photo preview: ${parsed.photos[0] ? parsed.photos[0].substring(0, 50) + '...' : 'null'}`);
                                 return true;
                             }
                         }
                     } catch (e) {
-                        // Skip invalid entries
+                        console.log(`❌ Error parsing session ${key}:`, e);
                     }
                 }
             } catch (e) {
-                console.log('❌ localStorage search failed');
+                console.log('❌ localStorage search failed:', e);
             }
             
             // Check sessionStorage as final fallback
@@ -263,31 +295,36 @@
                 const allKeys = Object.keys(sessionStorage);
                 const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
                 
+                console.log(`📂 Found ${sessionKeys.length} session keys in sessionStorage:`, sessionKeys);
+                
                 sessionKeys.sort((a, b) => {
                     const timestampA = parseInt(a.split('_')[1]) || 0;
                     const timestampB = parseInt(b.split('_')[1]) || 0;
                     return timestampB - timestampA;
                 });
                 
-                console.log(`Found ${sessionKeys.length} sessions in sessionStorage`);
-                
                 for (const key of sessionKeys) {
                     try {
                         const data = sessionStorage.getItem(key);
                         if (data) {
                             const parsed = JSON.parse(data);
+                            console.log(`📋 Checking sessionStorage session ${key}:`, parsed);
+                            
                             if (parsed.photos && parsed.photos.length > 0) {
-                                console.log(`✅ Using fallback photos from sessionStorage: ${key}`);
+                                console.log(`✅ Using fallback photos from sessionStorage: ${key} (${parsed.photos.length} photos)`);
                                 photoData = parsed.photos;
+                                
+                                // Debug: Show first photo data snippet
+                                console.log(`📸 First sessionStorage photo preview: ${parsed.photos[0] ? parsed.photos[0].substring(0, 50) + '...' : 'null'}`);
                                 return true;
                             }
                         }
                     } catch (e) {
-                        // Skip invalid entries
+                        console.log(`❌ Error parsing sessionStorage session ${key}:`, e);
                     }
                 }
             } catch (e) {
-                console.log('❌ sessionStorage search failed');
+                console.log('❌ sessionStorage search failed:', e);
             }
             
             console.log('❌ No photos found anywhere');
