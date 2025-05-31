@@ -294,80 +294,82 @@
 
         // Get photo data from URL parameters or localStorage
         function getPhotoData() {
-            log('Starting photo data retrieval...');
+            console.log('=== PHOTO DATA RETRIEVAL DEBUG ===');
             
             // Get session ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('session');
             
-            log(`Session ID from URL: ${sessionId}`);
-            log(`Current URL: ${window.location.href}`);
+            console.log('🔍 Session ID from URL:', sessionId);
+            console.log('🔗 Full URL:', window.location.href);
             
-            // First, try the exact session ID from URL
+            // Show ALL localStorage contents
+            console.log('📦 ALL localStorage contents:');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                console.log(`  • ${key}: ${value ? value.substring(0, 100) + '...' : 'null'}`);
+            }
+            
+            // Check for exact session match
             if (sessionId) {
-                try {
-                    log(`Looking for session data with key: ${sessionId}`);
-                    const storedData = localStorage.getItem(sessionId);
-                    
-                    if (storedData) {
+                console.log(`🎯 Looking for exact match: "${sessionId}"`);
+                const storedData = localStorage.getItem(sessionId);
+                
+                if (storedData) {
+                    try {
                         sessionData = JSON.parse(storedData);
                         photoData = sessionData.photos || [];
-                        log(`✅ Found ${photoData.length} photos in session ${sessionId}`);
+                        console.log(`✅ FOUND EXACT MATCH! ${photoData.length} photos`);
                         return true;
-                    } else {
-                        log(`❌ No data found for session ${sessionId}`, 'error');
+                    } catch (e) {
+                        console.log(`❌ Error parsing data: ${e.message}`);
                     }
-                } catch (e) {
-                    log(`❌ Error parsing session data: ${e.message}`, 'error');
+                } else {
+                    console.log(`❌ No exact match found for "${sessionId}"`);
                 }
+            } else {
+                console.log('❌ No session ID in URL');
             }
             
-            // Show what's available in localStorage for debugging
+            // Try ALL possible session variations
             const allKeys = Object.keys(localStorage);
-            const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
-            log(`📋 Available sessions in localStorage: [${sessionKeys.join(', ')}]`);
+            console.log('🔄 Trying all possible session keys...');
             
-            // If exact session not found but others exist, try fallback
-            if (sessionKeys.length > 0) {
-                log('🔄 Trying most recent session as fallback...');
-                
-                // Sort sessions by timestamp (newest first)
-                const sortedSessions = sessionKeys.sort((a, b) => {
-                    const timeA = a.split('_')[1] || '0';
-                    const timeB = b.split('_')[1] || '0';
-                    return parseInt(timeB) - parseInt(timeA);
-                });
-                
-                const mostRecent = sortedSessions[0];
-                log(`🔄 Trying fallback session: ${mostRecent}`);
-                
+            for (const key of allKeys) {
+                if (key.includes('session') || key.includes('photo')) {
+                    console.log(`🧪 Trying key: "${key}"`);
+                    try {
+                        const data = localStorage.getItem(key);
+                        if (data) {
+                            const parsed = JSON.parse(data);
+                            if (parsed.photos && parsed.photos.length > 0) {
+                                console.log(`✅ FOUND PHOTOS in "${key}"! ${parsed.photos.length} photos`);
+                                sessionData = parsed;
+                                photoData = parsed.photos;
+                                return true;
+                            }
+                        }
+                    } catch (e) {
+                        console.log(`  ❌ Could not parse "${key}"`);
+                    }
+                }
+            }
+            
+            // Check for photos stored directly (without session wrapper)
+            for (const key of allKeys) {
                 try {
-                    const fallbackData = localStorage.getItem(mostRecent);
-                    if (fallbackData) {
-                        sessionData = JSON.parse(fallbackData);
-                        photoData = sessionData.photos || [];
-                        log(`✅ Fallback successful: Found ${photoData.length} photos in ${mostRecent}`);
-                        log(`⚠️ Note: Using fallback session instead of requested ${sessionId}`);
-                        return true;
+                    const data = localStorage.getItem(key);
+                    if (data && data.startsWith('data:image/')) {
+                        console.log(`📸 Found raw image data in key: "${key}"`);
+                        // This might be individual photos stored separately
                     }
                 } catch (e) {
-                    log(`❌ Fallback failed: ${e.message}`, 'error');
+                    // Skip invalid entries
                 }
             }
-
-            // Fallback: try to get from URL parameters (old method)
-            const photoParam = urlParams.get('photos');
-            if (photoParam) {
-                try {
-                    photoData = JSON.parse(decodeURIComponent(photoParam));
-                    log(`✅ Loaded ${photoData.length} photos from URL parameters`);
-                    return true;
-                } catch (e) {
-                    log(`❌ Could not parse URL photo data: ${e.message}`, 'error');
-                }
-            }
-
-            log(`❌ No photo data found anywhere`);
+            
+            console.log('❌ No photo data found anywhere');
             return false;
         }
 
