@@ -441,63 +441,73 @@
         let capturedPhotos = [];
         let isCapturing = false;
 
-        let audioPool = [];
-        const AUDIO_POOL_SIZE = 5;
+        // FIXED AUDIO SYSTEM - Multiple instances for repeated playback
+        let audioInstances = [];
+        const AUDIO_POOL_SIZE = 10;
 
-        // Create multiple audio instances for iPad (prevents reuse issues)
+        // Create multiple fresh audio instances
         function createAudioPool() {
-            try {
-                audioPool = [];
-                for (let i = 0; i < AUDIO_POOL_SIZE; i++) {
+            console.log('🔊 Creating fresh audio pool...');
+            audioInstances = [];
+            
+            for (let i = 0; i < AUDIO_POOL_SIZE; i++) {
+                try {
                     const audio = new Audio('effect.mp3');
                     audio.volume = 1.0;
                     audio.preload = 'auto';
                     audio.load();
-                    audioPool.push(audio);
+                    audioInstances.push({
+                        audio: audio,
+                        inUse: false
+                    });
+                } catch (error) {
+                    console.error('Audio creation failed:', error);
                 }
-                console.log(`✅ Created audio pool with ${AUDIO_POOL_SIZE} instances`);
-            } catch (error) {
-                console.error('Audio pool creation failed:', error);
             }
+            console.log(`✅ Created ${audioInstances.length} audio instances`);
         }
 
-        // Play camera effect sound - FIXED FOR REPEATED PLAYBACK ON iPAD
+        // FIXED: Play camera effect sound with proper cleanup
         function playCameraEffect() {
-            console.log('🔊 Playing effect...');
+            console.log('🔊 Playing camera effect...');
             
             try {
-                // Get a fresh audio instance from the pool
-                const audio = audioPool.shift(); // Remove from front
+                // Find an available audio instance
+                const availableInstance = audioInstances.find(instance => !instance.inUse);
                 
-                if (audio) {
-                    // Reset the audio to beginning
+                if (availableInstance) {
+                    availableInstance.inUse = true;
+                    const audio = availableInstance.audio;
+                    
+                    // Reset to beginning
                     audio.currentTime = 0;
                     
+                    // Set up cleanup
+                    const cleanup = () => {
+                        availableInstance.inUse = false;
+                        audio.removeEventListener('ended', cleanup);
+                        audio.removeEventListener('error', cleanup);
+                    };
+                    
+                    audio.addEventListener('ended', cleanup);
+                    audio.addEventListener('error', cleanup);
+                    
+                    // Play with promise handling
                     const playPromise = audio.play();
                     if (playPromise) {
                         playPromise
                             .then(() => {
-                                console.log('✅ Effect played successfully');
-                                // Put the audio back in the pool after a delay
-                                setTimeout(() => {
-                                    audioPool.push(audio);
-                                }, 5000);
+                                console.log('✅ Camera effect played successfully');
                             })
                             .catch(error => {
-                                console.error('Audio playback failed:', error);
-                                // Put it back anyway
-                                audioPool.push(audio);
-                                playBeepSound();
+                                console.error('Camera effect playback failed:', error);
+                                cleanup();
+                                playBeepSound(); // Fallback
                             });
-                    } else {
-                        audio.play();
-                        setTimeout(() => {
-                            audioPool.push(audio);
-                        }, 5000);
                     }
                 } else {
-                    console.log('No audio instances available, creating new one');
-                    // Create a new instance if pool is empty
+                    console.log('No available audio instances, creating new one');
+                    // Create a fresh instance if pool is exhausted
                     const newAudio = new Audio('effect.mp3');
                     newAudio.volume = 1.0;
                     newAudio.currentTime = 0;
@@ -507,6 +517,30 @@
             } catch (error) {
                 console.error('Effect playback failed:', error);
                 playBeepSound();
+            }
+        }
+
+        // NEW: Beep sound for countdown numbers
+        function playCountdownBeep() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Short, sharp beep for countdown
+                oscillator.frequency.value = 800;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.2);
+                
+                console.log('🔔 Countdown beep played');
+            } catch (error) {
+                console.error('Countdown beep failed:', error);
             }
         }
 
@@ -527,7 +561,7 @@
                 oscillator.start();
                 oscillator.stop(audioContext.currentTime + 0.3);
                 
-                console.log('✅ Beep sound played');
+                console.log('✅ Fallback beep sound played');
             } catch (error) {
                 console.error('Beep sound failed:', error);
             }
@@ -569,7 +603,7 @@
         function goToFilterPage() {
             showPage('filterPage');
             
-            // Create audio pool for repeated playback on iPad
+            // Create audio pool for repeated playback
             createAudioPool();
             
             // Add a small delay to ensure page is loaded before initializing camera
@@ -626,7 +660,7 @@
             console.log('Filter selected:', filter);
             currentFilter = filter;
             
-            // Apply filter to video preview
+            // Apply filter to video preview (NO BALLOON EFFECTS ANYWHERE)
             video.style.filter = getFilterCSS(filter);
             captureVideo.style.filter = getFilterCSS(filter);
             
@@ -636,13 +670,13 @@
             }, 1000);
         }
 
-        // Get CSS filter (REMOVED BALLOON EFFECTS)
+        // Get CSS filter (NO BALLOON EFFECTS - COMPLETELY REMOVED)
         function getFilterCSS(filter) {
             switch(filter) {
                 case 'sepia': return 'sepia(1) contrast(1.2) brightness(1.1) saturate(1.3)';
                 case 'grayscale': return 'grayscale(1) contrast(1.2)';
                 case 'sunset': return 'saturate(1.6) brightness(1.1) contrast(1.2) hue-rotate(15deg) sepia(0.3)';
-                default: return 'none'; // Removed sparkle filter
+                default: return 'none'; // No sparkle or balloon effects
             }
         }
 
@@ -666,7 +700,7 @@
                     console.log(`Capturing photo ${i + 1}`);
                     progressBar.textContent = `Photo ${i + 1} of 3`;
                     
-                    // 5 second countdown with effect
+                    // 5 second countdown with beeps
                     await countdown();
                     
                     // Capture photo with filter applied
@@ -700,7 +734,7 @@
             }
         }
 
-        // Countdown function - EFFECT PLAYS 1.5 SECONDS BEFORE CAPTURE
+        // FIXED: Countdown function with beeps for each number
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -711,6 +745,9 @@
             for (let i = 5; i > 0; i--) {
                 countdownNumber.textContent = i;
                 countdownText.textContent = 'Get Ready!';
+                
+                // Play beep for each countdown number
+                playCountdownBeep();
                 
                 // Start effect.mp3 when countdown hits 2 (1.5 seconds before capture)
                 if (i === 2) {
@@ -792,7 +829,7 @@
             }
         }
 
-        // Apply filter using canvas pixel manipulation for consistent results (NO BALLOON EFFECTS)
+        // Apply filter using canvas pixel manipulation (NO BALLOON EFFECTS ANYWHERE)
         function applyCanvasFilter(imageData, filter) {
             const data = imageData.data;
             
@@ -821,14 +858,14 @@
                         data[i + 2] = Math.min(255, b * 0.8); // Reduce blue
                         break;
                         
-                    // Removed sparkle case - no more balloon effects
+                    // NO SPARKLE CASE - COMPLETELY REMOVED BALLOON EFFECTS
                 }
             }
             
             return imageData;
         }
 
-        // Show results - TOUCHSCREEN & QR FIXED VERSION
+        // Show results - NO AUTO-DOWNLOAD QR
         function showResults() {
             console.log('=== SHOWING RESULTS PAGE ===');
             
@@ -867,9 +904,9 @@
             }
         }
 
-        // UNIQUE QR CODE: Create unique session ID for each photo session
+        // FIXED: Create TRULY UNIQUE session ID for each photo session
         function generateQRCodeWithPhotosInURL() {
-            console.log('=== UNIQUE SESSION QR CODE GENERATION ===');
+            console.log('=== GENERATING UNIQUE SESSION QR CODE ===');
             
             const qrContainer = document.getElementById('qrcode');
             if (!qrContainer) {
@@ -889,45 +926,50 @@
                     return;
                 }
                 
-                // Create UNIQUE session ID for this specific photo session
-                const uniqueSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                console.log(`🔑 Created unique session ID: ${uniqueSessionId}`);
+                // Create COMPLETELY UNIQUE session ID with timestamp + random + photo hash
+                const timestamp = Date.now();
+                const randomPart = Math.random().toString(36).substr(2, 12);
+                const photoHash = btoa(validPhotos[0].substring(0, 50)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 8);
+                const uniqueSessionId = `session_${timestamp}_${randomPart}_${photoHash}`;
+                
+                console.log(`🔑 Created COMPLETELY UNIQUE session ID: ${uniqueSessionId}`);
                 
                 // Store photos with this unique session ID
                 const photoData = {
                     photos: validPhotos,
                     filter: currentFilter,
-                    timestamp: Date.now(),
+                    timestamp: timestamp,
                     date: new Date().toLocaleString(),
-                    sessionId: uniqueSessionId
+                    sessionId: uniqueSessionId,
+                    photoHash: photoHash // Additional uniqueness
                 };
                 
-                console.log(`📊 Storing ${validPhotos.length} photos with unique session ID...`);
+                console.log(`📊 Storing ${validPhotos.length} photos with UNIQUE session ID...`);
                 
-                // Store in multiple places for maximum compatibility using the UNIQUE session ID
+                // Store in multiple places for maximum compatibility
                 try {
                     localStorage.setItem(uniqueSessionId, JSON.stringify(photoData));
-                    console.log(`✅ Stored in localStorage with key: ${uniqueSessionId}`);
+                    console.log(`✅ Stored in localStorage with UNIQUE key: ${uniqueSessionId}`);
                 } catch (e) {
-                    console.log('❌ localStorage failed');
+                    console.log('❌ localStorage failed:', e);
                 }
                 
                 try {
                     sessionStorage.setItem(uniqueSessionId, JSON.stringify(photoData));
-                    console.log(`✅ Stored in sessionStorage with key: ${uniqueSessionId}`);
+                    console.log(`✅ Stored in sessionStorage with UNIQUE key: ${uniqueSessionId}`);
                 } catch (e) {
-                    console.log('❌ sessionStorage failed');
+                    console.log('❌ sessionStorage failed:', e);
                 }
                 
-                // Clean up old sessions to prevent storage overflow
+                // Clean up old sessions more aggressively
                 try {
                     const allKeys = Object.keys(localStorage);
                     const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
                     
-                    // Keep only the 5 most recent sessions
-                    if (sessionKeys.length > 5) {
+                    // Keep only the 3 most recent sessions (more aggressive cleanup)
+                    if (sessionKeys.length > 3) {
                         const sortedKeys = sessionKeys.sort();
-                        const keysToRemove = sortedKeys.slice(0, -5);
+                        const keysToRemove = sortedKeys.slice(0, -3);
                         
                         keysToRemove.forEach(key => {
                             localStorage.removeItem(key);
@@ -935,17 +977,17 @@
                         });
                     }
                 } catch (e) {
-                    console.log('Cleanup failed');
+                    console.log('Cleanup failed:', e);
                 }
                 
                 // Create QR code that points to album.html with the UNIQUE session ID
                 let qrUrl;
                 try {
                     const currentLocation = window.location;
-                    // Include the unique session ID in the URL
+                    // Include the UNIQUE session ID in the URL
                     qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}album.html?session=${uniqueSessionId}`;
                     
-                    console.log(`🔗 Unique Album QR URL: ${qrUrl} (${qrUrl.length} chars)`);
+                    console.log(`🔗 UNIQUE Album QR URL: ${qrUrl} (${qrUrl.length} chars)`);
                     
                     // Generate QR code
                     if (typeof qrcode === 'undefined') {
@@ -965,31 +1007,15 @@
                     setTimeout(() => {
                         const successDiv = document.createElement('div');
                         successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: green; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
-                        successDiv.textContent = '✅ QR OK';
+                        successDiv.textContent = '✅ NEW';
                         qrContainer.style.position = 'relative';
                         qrContainer.appendChild(successDiv);
                         
                         setTimeout(() => successDiv.remove(), 3000);
                     }, 100);
                     
-                    // Auto-download QR code with unique filename
-                    setTimeout(() => {
-                        try {
-                            const qrImg = qrContainer.querySelector('img');
-                            if (qrImg && qrImg.src) {
-                                const link = document.createElement('a');
-                                link.download = `Album_QR_${uniqueSessionId.slice(-8)}.png`;
-                                link.href = qrImg.src;
-                                link.style.display = 'none';
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                console.log(`🔽 Unique QR code auto-downloaded: Album_QR_${uniqueSessionId.slice(-8)}.png`);
-                            }
-                        } catch (downloadError) {
-                            console.log('QR download failed:', downloadError);
-                        }
-                    }, 1000);
+                    // NO AUTO-DOWNLOAD - REMOVED COMPLETELY
+                    console.log('📱 QR code generated but NO auto-download (as requested)');
                     
                     // Update subtitle
                     const subtitle = document.getElementById('qrSubtitle');
@@ -1001,10 +1027,10 @@
                     return; // Success!
                     
                 } catch (qrError) {
-                    console.error('❌ Even unique session QR failed:', qrError);
+                    console.error('❌ QR generation failed:', qrError);
                 }
                 
-                // If even the unique session QR failed, show manual instructions
+                // If QR failed, show manual instructions
                 qrContainer.innerHTML = `
                     <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
                         <strong>QR Library Error</strong><br>
