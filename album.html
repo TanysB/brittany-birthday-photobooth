@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Photo Album - Brittany's 22nd Birthday</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #F5DEB3, #DEB887);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .page-title {
+            text-align: center;
+            color: #654321;
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .album-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            background-image: url('album.png');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            aspect-ratio: 1/2.5;
+            margin-bottom: 30px;
+            border: 3px solid #654321;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Photo overlays positioned exactly in the white rectangles of album.png */
+        .photo-overlay {
+            position: absolute;
+            overflow: hidden;
+        }
+
+        /* Top photo - positioned in first white rectangle */
+        .photo-1 {
+            top: 2.5%;
+            left: 8.9%;
+            width: 82%;
+            height: 24%;
+        }
+
+        /* Middle photo - positioned in second white rectangle */
+        .photo-2 {
+            top: 28.5%;
+            left: 8.9%;
+            width: 82%;
+            height: 24%;
+        }
+
+        /* Bottom photo - positioned in third white rectangle */
+        .photo-3 {
+            top: 54.5%;
+            left: 8.9%;
+            width: 82.2%;
+            height: 24%;
+        }
+
+        .album-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .action-button {
+            background: linear-gradient(135deg, #654321, #4a2c1a);
+            color: #F5DEB3;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            font-family: 'Georgia', serif;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .action-button:hover {
+            background: linear-gradient(135deg, #7d5436, #5a3422);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #228B22, #006400);
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(135deg, #32CD32, #228B22);
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #654321;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            color: #654321;
+            font-size: 1em;
+            line-height: 1.6;
+            max-width: 500px;
+        }
+
+        .status-message {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            display: none;
+        }
+
+        .status-success {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            border: 2px solid #4CAF50;
+        }
+
+        .status-error {
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+            border: 2px solid #f44336;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 1.5em;
+            }
+            
+            .album-container {
+                max-width: 350px;
+            }
+            
+            .action-button {
+                padding: 12px 25px;
+                font-size: 1em;
+                min-width: 150px;
+            }
+            
+            .buttons-container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-title">
+        🤠 Your Photo Album 📸
+    </div>
+
+    <div class="status-message" id="statusMessage"></div>
+
+    <div class="album-container" id="albumContainer">
+        <div class="photo-overlay photo-1" id="photoSlot1"></div>
+        <div class="photo-overlay photo-2" id="photoSlot2"></div>
+        <div class="photo-overlay photo-3" id="photoSlot3"></div>
+    </div>
+
+    <div class="buttons-container">
+        <button class="action-button download-btn" onclick="downloadAlbum()">
+            📥 Download Album
+        </button>
+        <button class="action-button" onclick="shareAlbum()">
+            📱 Save to Photos
+        </button>
+    </div>
+
+    <div class="instructions">
+        <strong>💡 How to save:</strong><br>
+        • <strong>Download Album:</strong> Downloads the album image to your device<br>
+        • <strong>Save to Photos:</strong> Instructions for screenshotting<br>
+        • <strong>Long press:</strong> On mobile, long press the album to save image
+    </div>
+
+    <script>
+        let photoData = [];
+
+        // Get photos from storage
+        function loadPhotos() {
+            console.log('🔍 Loading photos for album...');
+            
+            // Try to find photos in storage
+            let foundPhotos = false;
+            
+            // Method 1: Check for latest photos flag
+            if (localStorage.getItem('has_recent_photos') === 'true' || sessionStorage.getItem('has_recent_photos') === 'true') {
+                try {
+                    let latestData = localStorage.getItem('latest_photos');
+                    if (!latestData) {
+                        latestData = sessionStorage.getItem('latest_photos');
+                    }
+                    
+                    if (latestData) {
+                        const parsed = JSON.parse(latestData);
+                        if (parsed.photos && parsed.photos.length > 0) {
+                            photoData = parsed.photos;
+                            foundPhotos = true;
+                            console.log(`✅ Found ${photoData.length} recent photos`);
+                        }
+                    }
+                } catch (e) {
+                    console.log('❌ Error loading recent photos');
+                }
+            }
+            
+            // Method 2: Search all storage for any photos
+            if (!foundPhotos) {
+                console.log('🔄 Searching all storage for photos...');
+                
+                // Check localStorage
+                try {
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && (key.includes('photo') || key.includes('session') || key.includes('latest'))) {
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                const parsed = JSON.parse(data);
+                                if (parsed.photos && parsed.photos.length > 0) {
+                                    photoData = parsed.photos;
+                                    foundPhotos = true;
+                                    console.log(`✅ Found fallback photos in localStorage: ${key}`);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('❌ localStorage search failed');
+                }
+                
+                // Check sessionStorage if still not found
+                if (!foundPhotos) {
+                    try {
+                        for (let i = 0; i < sessionStorage.length; i++) {
+                            const key = sessionStorage.key(i);
+                            if (key && (key.includes('photo') || key.includes('session') || key.includes('latest'))) {
+                                const data = sessionStorage.getItem(key);
+                                if (data) {
+                                    const parsed = JSON.parse(data);
+                                    if (parsed.photos && parsed.photos.length > 0) {
+                                        photoData = parsed.photos;
+                                        foundPhotos = true;
+                                        console.log(`✅ Found fallback photos in sessionStorage: ${key}`);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('❌ sessionStorage search failed');
+                    }
+                }
+            }
+            
+            return foundPhotos;
+        }
+
+        // Create placeholder image
+        function createPlaceholder(index) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 400;
+            canvas.height = 300;
+            
+            // Background
+            const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+            gradient.addColorStop(0, '#F5DEB3');
+            gradient.addColorStop(1, '#DEB887');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 400, 300);
+            
+            // Text
+            ctx.fillStyle = '#654321';
+            ctx.font = 'bold 36px Georgia';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Photo ${index}`, 200, 120);
+            ctx.font = '20px Georgia';
+            ctx.fillText("Brittany's 22nd Birthday", 200, 160);
+            ctx.fillText('🤠 Western Theme 🌵', 200, 190);
+            
+            return canvas.toDataURL();
+        }
+
+        // Display photos in album
+        function displayAlbum() {
+            console.log('📸 Displaying album...');
+            
+            const hasPhotos = loadPhotos();
+            
+            // Display each photo slot
+            for (let i = 0; i < 3; i++) {
+                const slot = document.getElementById(`photoSlot${i + 1}`);
+                const img = document.createElement('img');
+                img.className = 'album-photo';
+                img.alt = `Photo ${i + 1}`;
+                
+                if (hasPhotos && photoData[i]) {
+                    img.src = photoData[i];
+                    console.log(`📷 Loaded photo ${i + 1} from storage`);
+                } else {
+                    img.src = createPlaceholder(i + 1);
+                    console.log(`📝 Created placeholder for slot ${i + 1}`);
+                }
+                
+                slot.innerHTML = '';
+                slot.appendChild(img);
+            }
+            
+            if (hasPhotos) {
+                showStatus('✅ Your photos loaded successfully!', 'success');
+            } else {
+                showStatus('⚠️ No photos found - showing sample album', 'error');
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 4000);
+        }
+
+        // Download the album as an image
+        async function downloadAlbum() {
+            console.log('💾 Starting album download...');
+            
+            try {
+                const albumContainer = document.getElementById('albumContainer');
+                
+                // Use html2canvas library (loaded from CDN)
+                if (typeof html2canvas === 'undefined') {
+                    // Fallback: Create canvas manually
+                    await captureAlbumManually();
+                } else {
+                    // Use html2canvas for better quality
+                    const canvas = await html2canvas(albumContainer, {
+                        allowTaint: true,
+                        useCORS: true,
+                        scale: 2,
+                        backgroundColor: null
+                    });
+                    
+                    // Download the image
+                    const link = document.createElement('a');
+                    link.download = 'Brittany_22nd_Birthday_Album.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                
+                showStatus('📥 Album downloaded successfully!', 'success');
+                console.log('✅ Album download completed');
+                
+            } catch (error) {
+                console.error('❌ Download failed:', error);
+                showStatus('❌ Download failed. Try long-pressing the album to save.', 'error');
+            }
+        }
+
+        // Manual canvas capture (fallback)
+        async function captureAlbumManually() {
+            const albumContainer = document.getElementById('albumContainer');
+            const rect = albumContainer.getBoundingClientRect();
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = rect.width * 2;
+            canvas.height = rect.height * 2;
+            ctx.scale(2, 2);
+            
+            // Draw background (album.png)
+            const albumBg = new Image();
+            albumBg.onload = function() {
+                ctx.drawImage(albumBg, 0, 0, rect.width, rect.height);
+                
+                // Draw photos
+                let photosDrawn = 0;
+                for (let i = 0; i < 3; i++) {
+                    const img = document.getElementById(`photoSlot${i + 1}`).querySelector('img');
+                    if (img) {
+                        const photoImg = new Image();
+                        photoImg.onload = function() {
+                            const slot = document.getElementById(`photoSlot${i + 1}`);
+                            const slotRect = slot.getBoundingClientRect();
+                            const x = slotRect.left - rect.left;
+                            const y = slotRect.top - rect.top;
+                            
+                            ctx.drawImage(photoImg, x, y, slotRect.width, slotRect.height);
+                            photosDrawn++;
+                            
+                            // When all photos are drawn, download
+                            if (photosDrawn === 3) {
+                                const link = document.createElement('a');
+                                link.download = 'Brittany_22nd_Birthday_Album.png';
+                                link.href = canvas.toDataURL('image/png');
+                                link.style.display = 'none';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                            }
+                        };
+                        photoImg.src = img.src;
+                    }
+                }
+            };
+            albumBg.src = 'album.png';
+        }
+
+        // Share/save instructions
+        function shareAlbum() {
+            const instructions = `
+📱 To save this album to your phone:
+
+iPhone/iPad:
+• Long press on the album image above
+• Select "Save to Photos" or "Add to Photos"
+
+Android:
+• Long press on the album image above  
+• Select "Download image" or "Save image"
+
+Computer:
+• Right-click on the album image
+• Select "Save image as..."
+
+The album will be saved with your 3 photos positioned exactly as shown!
+            `;
+            
+            alert(instructions);
+        }
+
+        // Initialize page
+        window.addEventListener('load', () => {
+            console.log('🎉 Album page loaded');
+            displayAlbum();
+        });
+    </script>
+    
+    <!-- Optional: Load html2canvas for better capture quality -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</body>
+</html>
