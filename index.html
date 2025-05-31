@@ -697,7 +697,7 @@
             }
         }
 
-        // Countdown function - sound effect starts much earlier to sync with photo capture
+        // Countdown function - sound effect timing adjusted
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -709,10 +709,10 @@
                 countdownNumber.textContent = i;
                 countdownText.textContent = 'Get Ready!';
                 
-                // Start effect.mp3 when countdown hits 3 (2 seconds before photo capture)
-                if (i === 3) {
+                // Start effect.mp3 when countdown hits 2 (1 second before photo capture)
+                if (i === 2) {
                     playCameraEffect();
-                    console.log('Effect started at countdown 3');
+                    console.log('Effect started at countdown 2');
                 }
                 
                 console.log(`Countdown: ${i}`);
