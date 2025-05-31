@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Storage Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .session {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .session-header {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .session-details {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .clear-button {
+            background: #dc3545;
+        }
+        .clear-button:hover {
+            background: #c82333;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Session Storage Debug Tool</h1>
+        <p>This tool helps debug photo session storage issues.</p>
+        
+        <div>
+            <button class="test-button" onclick="createTestSession()">Create Test Session</button>
+            <button class="test-button" onclick="refreshSessions()">Refresh List</button>
+            <button class="test-button clear-button" onclick="clearAllSessions()">Clear All Sessions</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <h2>📂 Found Sessions:</h2>
+        <div id="sessionsList"></div>
+        
+        <h2>🔗 Quick Links:</h2>
+        <div id="quickLinks"></div>
+    </div>
+
+    <script>
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.className = type;
+            status.textContent = message;
+        }
+
+        function createTestSession() {
+            try {
+                // Create a test session similar to your photo booth
+                const timestamp = Date.now();
+                const randomPart = Math.random().toString(36).substr(2, 12);
+                const photoHash = 'TEST12AB'; // Fake hash for test
+                const uniqueSessionId = `session_${timestamp}_${randomPart}_${photoHash}`;
+                
+                // Create fake photo data (small test images)
+                const testPhotos = [
+                    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', // Red pixel
+                    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', // Green pixel  
+                    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYGBgAAAABQABpfZFQQAAAABJRU5ErkJggg==' // Blue pixel
+                ];
+                
+                const photoData = {
+                    photos: testPhotos,
+                    filter: 'test',
+                    timestamp: timestamp,
+                    date: new Date().toLocaleString(),
+                    sessionId: uniqueSessionId,
+                    photoHash: photoHash
+                };
+                
+                // Store in both storages
+                localStorage.setItem(uniqueSessionId, JSON.stringify(photoData));
+                sessionStorage.setItem(uniqueSessionId, JSON.stringify(photoData));
+                
+                showStatus(`✅ Test session created: ${uniqueSessionId}`, 'success');
+                refreshSessions();
+                
+            } catch (error) {
+                showStatus(`❌ Error creating test session: ${error.message}`, 'error');
+            }
+        }
+
+        function refreshSessions() {
+            const sessionsList = document.getElementById('sessionsList');
+            const quickLinks = document.getElementById('quickLinks');
+            
+            sessionsList.innerHTML = '';
+            quickLinks.innerHTML = '';
+            
+            let allSessions = [];
+            
+            // Check localStorage
+            try {
+                const localKeys = Object.keys(localStorage);
+                const sessionKeys = localKeys.filter(key => key.startsWith('session_'));
+                
+                sessionKeys.forEach(key => {
+                    try {
+                        const data = localStorage.getItem(key);
+                        const parsed = JSON.parse(data);
+                        allSessions.push({
+                            key: key,
+                            data: parsed,
+                            storage: 'localStorage',
+                            timestamp: parsed.timestamp || 0
+                        });
+                    } catch (e) {
+                        console.error('Error parsing session:', key, e);
+                    }
+                });
+            } catch (e) {
+                console.error('Error reading localStorage:', e);
+            }
+            
+            // Check sessionStorage
+            try {
+                const sessionKeys = Object.keys(sessionStorage).filter(key => key.startsWith('session_'));
+                
+                sessionKeys.forEach(key => {
+                    try {
+                        const data = sessionStorage.getItem(key);
+                        const parsed = JSON.parse(data);
+                        // Only add if not already found in localStorage
+                        if (!allSessions.find(s => s.key === key)) {
+                            allSessions.push({
+                                key: key,
+                                data: parsed,
+                                storage: 'sessionStorage',
+                                timestamp: parsed.timestamp || 0
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Error parsing session:', key, e);
+                    }
+                });
+            } catch (e) {
+                console.error('Error reading sessionStorage:', e);
+            }
+            
+            // Sort by timestamp (newest first)
+            allSessions.sort((a, b) => b.timestamp - a.timestamp);
+            
+            if (allSessions.length === 0) {
+                sessionsList.innerHTML = '<div class="session">No sessions found</div>';
+                return;
+            }
+            
+            allSessions.forEach(session => {
+                const sessionDiv = document.createElement('div');
+                sessionDiv.className = 'session';
+                
+                const photoCount = session.data.photos ? session.data.photos.length : 0;
+                const date = new Date(session.timestamp).toLocaleString();
+                
+                sessionDiv.innerHTML = `
+                    <div class="session-header">
+                        📁 ${session.key}
+                    </div>
+                    <div class="session-details">
+                        📸 Photos: ${photoCount} | 
+                        🕒 Created: ${date} | 
+                        💾 Storage: ${session.storage} |
+                        🎨 Filter: ${session.data.filter || 'none'}
+                    </div>
+                `;
+                
+                sessionsList.appendChild(sessionDiv);
+                
+                // Create quick link for testing
+                const linkDiv = document.createElement('div');
+                linkDiv.innerHTML = `
+                    <a href="album.html?session=${session.key}" target="_blank" style="color: #007bff; text-decoration: none;">
+                        🔗 Test Album for ${session.key.slice(-12)}
+                    </a>
+                `;
+                quickLinks.appendChild(linkDiv);
+            });
+            
+            showStatus(`Found ${allSessions.length} sessions`, 'success');
+        }
+
+        function clearAllSessions() {
+            if (confirm('Clear all sessions? This cannot be undone!')) {
+                try {
+                    // Clear localStorage sessions
+                    const localKeys = Object.keys(localStorage);
+                    const sessionKeys = localKeys.filter(key => key.startsWith('session_'));
+                    sessionKeys.forEach(key => localStorage.removeItem(key));
+                    
+                    // Clear sessionStorage sessions
+                    const sessionKeys2 = Object.keys(sessionStorage);
+                    const sessionKeys3 = sessionKeys2.filter(key => key.startsWith('session_'));
+                    sessionKeys3.forEach(key => sessionStorage.removeItem(key));
+                    
+                    showStatus(`✅ Cleared ${sessionKeys.length + sessionKeys3.length} sessions`, 'success');
+                    refreshSessions();
+                } catch (error) {
+                    showStatus(`❌ Error clearing sessions: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // Auto-refresh on page load
+        window.addEventListener('load', () => {
+            refreshSessions();
+        });
+    </script>
+</body>
+</html>
