@@ -3,378 +3,289 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Photo Gallery Debug Tool</title>
+    <title>Debug Tool - Photo Booth Storage</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Georgia', serif;
-            background: linear-gradient(135deg, #F5DEB3, #DEB887);
-            min-height: 100vh;
+            font-family: Arial, sans-serif;
             padding: 20px;
+            background: #f0f0f0;
+            font-size: 16px;
+            line-height: 1.6;
         }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #654321;
-        }
-
+        
         .section {
-            background: #f9f9f9;
-            border-radius: 10px;
-            padding: 20px;
+            background: white;
             margin: 20px 0;
-            border-left: 5px solid #654321;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #333;
         }
-
-        .debug-info {
-            background: #e8f4f8;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 14px;
+        
+        .success { border-color: green; background: #f0fff0; }
+        .error { border-color: red; background: #fff0f0; }
+        .info { border-color: blue; background: #f0f0ff; }
+        
+        h1, h2 { margin-top: 0; }
+        
+        .key { 
+            background: #eee; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px;
             word-break: break-all;
         }
-
-        .button {
-            background: linear-gradient(135deg, #654321, #8B4513);
+        
+        .photo-preview {
+            max-width: 200px;
+            max-height: 150px;
+            border: 2px solid #333;
+            margin: 10px 0;
+        }
+        
+        button {
+            background: #007bff;
             color: white;
             border: none;
-            padding: 12px 25px;
-            border-radius: 25px;
-            cursor: pointer;
-            margin: 5px;
-            font-size: 14px;
-        }
-
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .success { background: #d4edda; border-left-color: #28a745; }
-        .error { background: #f8d7da; border-left-color: #dc3545; }
-        .warning { background: #fff3cd; border-left-color: #ffc107; }
-        .info { background: #d1ecf1; border-left-color: #17a2b8; }
-
-        .test-qr {
-            text-align: center;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
+            padding: 15px 30px;
             border-radius: 5px;
-            font-size: 14px;
-            margin: 5px 0;
+            font-size: 16px;
+            margin: 10px 5px;
+            cursor: pointer;
         }
-
-        .qr-preview {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            margin: 20px 0;
-        }
+        
+        button:hover { background: #0056b3; }
+        
+        .clear-btn { background: #dc3545; }
+        .clear-btn:hover { background: #c82333; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔍 Photo Gallery QR Code Debug Tool</h1>
-            <p>Let's figure out what's wrong with your QR code!</p>
-        </div>
-
-        <div class="section info">
-            <h3>📋 Current Page Information</h3>
-            <div class="debug-info" id="pageInfo">Loading...</div>
-        </div>
-
-        <div class="section">
-            <h3>🔧 QR Code Generator & Tester</h3>
-            <p>Enter your gallery URL to generate and test a QR code:</p>
-            
-            <input type="text" id="galleryUrl" placeholder="Enter your gallery page URL (e.g., https://yoursite.com/gallery.html)" />
-            
-            <div class="test-qr">
-                <button class="button" onclick="generateQR()">🎯 Generate QR Code</button>
-                <button class="button" onclick="testUrl()">🧪 Test URL</button>
-                <button class="button" onclick="createSampleSession()">📸 Create Sample Session</button>
-            </div>
-
-            <div id="qrResult" class="qr-preview" style="display: none;">
-                <div id="qrCode"></div>
-                <p><strong>Scan this QR code to test!</strong></p>
-            </div>
-        </div>
-
-        <div class="section">
-            <h3>💾 localStorage Debug</h3>
-            <div id="storageInfo" class="debug-info">Loading storage info...</div>
-            <button class="button" onclick="refreshStorage()">🔄 Refresh Storage</button>
-            <button class="button" onclick="clearStorage()">🗑️ Clear All Sessions</button>
-        </div>
-
-        <div class="section">
-            <h3>🎨 Photo Session Creator</h3>
-            <p>Create a test session with sample photos:</p>
-            <button class="button" onclick="createTestSession()">📷 Create Test Session</button>
-            <div id="sessionResult"></div>
-        </div>
-
-        <div class="section warning">
-            <h3>⚠️ Common Issues & Solutions</h3>
-            <ul style="margin-left: 20px; line-height: 1.6;">
-                <li><strong>QR code doesn't redirect:</strong> Make sure your URL is complete with https://</li>
-                <li><strong>Photos not loading:</strong> Check that localStorage isn't being blocked</li>
-                <li><strong>Session expired:</strong> Sessions are stored locally - they disappear if browser data is cleared</li>
-                <li><strong>Wrong page loading:</strong> Verify the QR code contains the correct URL with session parameter</li>
-            </ul>
-        </div>
-
-        <div class="section">
-            <h3>🔗 Manual URL Builder</h3>
-            <p>Build a gallery URL manually:</p>
-            <input type="text" id="baseUrl" placeholder="Base URL (e.g., https://yoursite.com/gallery.html)" />
-            <input type="text" id="sessionId" placeholder="Session ID (e.g., session_1234)" />
-            <button class="button" onclick="buildUrl()">🔨 Build URL</button>
-            <div id="builtUrl" class="debug-info" style="display: none;"></div>
-        </div>
+    <h1>📱 iPad Photo Booth Debug Tool</h1>
+    
+    <div class="section info">
+        <h2>🔗 URL Information</h2>
+        <div id="urlInfo"></div>
+    </div>
+    
+    <div class="section" id="storageSection">
+        <h2>📦 localStorage Contents</h2>
+        <div id="storageInfo"></div>
+    </div>
+    
+    <div class="section" id="photoSection">
+        <h2>📸 Found Photos</h2>
+        <div id="photoInfo"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🛠️ Actions</h2>
+        <button onclick="refreshData()">🔄 Refresh Data</button>
+        <button onclick="showAllData()">📋 Show Raw Data</button>
+        <button class="clear-btn" onclick="clearAllData()">🗑️ Clear All Storage</button>
+    </div>
+    
+    <div class="section">
+        <h2>📊 Summary</h2>
+        <div id="summary" style="font-weight: bold; font-size: 18px;"></div>
     </div>
 
     <script>
-        // Load QR code library
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js';
-        document.head.appendChild(script);
-
-        // Display current page info
-        function updatePageInfo() {
-            const info = document.getElementById('pageInfo');
+        function updateUrlInfo() {
             const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session');
             
-            info.innerHTML = `
-                <strong>Current URL:</strong> ${window.location.href}<br>
-                <strong>Protocol:</strong> ${window.location.protocol}<br>
-                <strong>Host:</strong> ${window.location.host}<br>
-                <strong>Pathname:</strong> ${window.location.pathname}<br>
-                <strong>Search params:</strong> ${window.location.search || 'None'}<br>
-                <strong>Session param:</strong> ${urlParams.get('session') || 'Not found'}<br>
-                <strong>User Agent:</strong> ${navigator.userAgent}<br>
-                <strong>localStorage available:</strong> ${typeof(Storage) !== "undefined" ? '✅ Yes' : '❌ No'}
+            document.getElementById('urlInfo').innerHTML = `
+                <strong>Current URL:</strong><br>
+                ${window.location.href}<br><br>
+                <strong>Session ID from URL:</strong><br>
+                ${sessionId || 'None found'}<br><br>
+                <strong>Expected format:</strong><br>
+                gallery.html?session=session_1234567890
             `;
         }
 
-        // Update storage info
-        function refreshStorage() {
+        function updateStorageInfo() {
             const storageDiv = document.getElementById('storageInfo');
-            const allKeys = Object.keys(localStorage);
-            const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
+            const storageSection = document.getElementById('storageSection');
             
-            let storageInfo = `<strong>Total localStorage keys:</strong> ${allKeys.length}<br>`;
-            storageInfo += `<strong>Session keys:</strong> ${sessionKeys.length}<br><br>`;
-            
-            if (sessionKeys.length > 0) {
-                sessionKeys.forEach(key => {
-                    try {
-                        const data = JSON.parse(localStorage.getItem(key));
-                        storageInfo += `<strong>${key}:</strong><br>`;
-                        storageInfo += `  • Photos: ${data.photos ? data.photos.length : 0}<br>`;
-                        storageInfo += `  • Date: ${data.date || 'Unknown'}<br>`;
-                        storageInfo += `  • Filter: ${data.filter || 'None'}<br><br>`;
-                    } catch (e) {
-                        storageInfo += `<strong>${key}:</strong> Invalid data<br><br>`;
-                    }
-                });
-            } else {
-                storageInfo += '<em>No sessions found in localStorage</em>';
-            }
-            
-            storageDiv.innerHTML = storageInfo;
-        }
-
-        // Clear all storage
-        function clearStorage() {
-            if (confirm('Clear all photo sessions? This cannot be undone!')) {
-                const sessionKeys = Object.keys(localStorage).filter(key => key.startsWith('session_'));
-                sessionKeys.forEach(key => localStorage.removeItem(key));
-                refreshStorage();
-                alert('All sessions cleared!');
-            }
-        }
-
-        // Generate QR code
-        function generateQR() {
-            const url = document.getElementById('galleryUrl').value.trim();
-            
-            if (!url) {
-                alert('Please enter a URL first!');
+            if (localStorage.length === 0) {
+                storageDiv.innerHTML = '<strong style="color: red;">❌ NO DATA IN localStorage</strong>';
+                storageSection.className = 'section error';
                 return;
             }
-
-            // Add session parameter if not present
-            let finalUrl = url;
-            if (!url.includes('session=')) {
-                const separator = url.includes('?') ? '&' : '?';
-                finalUrl = `${url}${separator}session=session_${Date.now()}`;
+            
+            storageSection.className = 'section success';
+            
+            let html = `<strong>Found ${localStorage.length} items in localStorage:</strong><br><br>`;
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                const size = value ? (value.length / 1024).toFixed(1) : 0;
+                
+                html += `<div class="key">
+                    <strong>Key:</strong> ${key}<br>
+                    <strong>Size:</strong> ${size} KB<br>
+                    <strong>Type:</strong> ${getDataType(value)}<br>
+                    <strong>Preview:</strong> ${getDataPreview(value, key)}
+                </div>`;
             }
+            
+            storageDiv.innerHTML = html;
+        }
 
-            const qrResult = document.getElementById('qrResult');
-            const qrCode = document.getElementById('qrCode');
+        function getDataType(value) {
+            if (!value) return 'Empty';
+            if (value.startsWith('data:image/')) return '🖼️ Image Data';
+            if (value.startsWith('{')) return '📋 JSON Data';
+            return '📝 Text Data';
+        }
+
+        function getDataPreview(value, key) {
+            if (!value) return 'Empty';
             
-            qrCode.innerHTML = ''; // Clear previous QR code
+            if (value.startsWith('data:image/')) {
+                return `<br><img src="${value}" class="photo-preview" alt="Photo preview">`;
+            }
             
-            if (typeof QRCode !== 'undefined') {
-                QRCode.toCanvas(qrCode, finalUrl, { width: 200, height: 200 }, (error) => {
-                    if (error) {
-                        qrCode.innerHTML = `<p style="color: red;">QR Generation Error: ${error}</p>`;
-                    } else {
-                        qrResult.style.display = 'block';
-                        const canvas = qrCode.querySelector('canvas');
-                        if (canvas) {
-                            canvas.style.border = '2px solid #654321';
-                            canvas.style.borderRadius = '10px';
+            if (value.startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(value);
+                    let preview = 'JSON contains: ';
+                    const keys = Object.keys(parsed);
+                    preview += keys.join(', ');
+                    
+                    if (parsed.photos) {
+                        preview += `<br><strong>${parsed.photos.length} photos found!</strong>`;
+                        if (parsed.photos[0]) {
+                            preview += `<br><img src="${parsed.photos[0]}" class="photo-preview" alt="First photo">`;
                         }
                     }
+                    
+                    return preview;
+                } catch (e) {
+                    return 'Invalid JSON';
+                }
+            }
+            
+            return value.substring(0, 100) + (value.length > 100 ? '...' : '');
+        }
+
+        function updatePhotoInfo() {
+            const photoDiv = document.getElementById('photoInfo');
+            const photoSection = document.getElementById('photoSection');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session');
+            
+            let foundPhotos = [];
+            let sessionFound = false;
+            
+            // Check for exact session match
+            if (sessionId) {
+                const sessionData = localStorage.getItem(sessionId);
+                if (sessionData) {
+                    try {
+                        const parsed = JSON.parse(sessionData);
+                        if (parsed.photos) {
+                            foundPhotos = parsed.photos;
+                            sessionFound = true;
+                        }
+                    } catch (e) {
+                        // Not valid JSON
+                    }
+                }
+            }
+            
+            // If no exact match, look for any sessions
+            if (!sessionFound) {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('session_') || key.startsWith('photos_')) {
+                        try {
+                            const data = localStorage.getItem(key);
+                            const parsed = JSON.parse(data);
+                            if (parsed.photos && parsed.photos.length > 0) {
+                                foundPhotos = parsed.photos;
+                                break;
+                            }
+                        } catch (e) {
+                            // Skip invalid entries
+                        }
+                    }
+                }
+            }
+            
+            if (foundPhotos.length > 0) {
+                photoSection.className = 'section success';
+                let html = `<strong>✅ Found ${foundPhotos.length} photos!</strong><br><br>`;
+                
+                foundPhotos.forEach((photo, index) => {
+                    html += `<div>
+                        <strong>Photo ${index + 1}:</strong><br>
+                        <img src="${photo}" class="photo-preview" alt="Photo ${index + 1}">
+                    </div>`;
                 });
+                
+                photoDiv.innerHTML = html;
             } else {
-                qrCode.innerHTML = `
-                    <div style="padding: 20px; border: 2px solid #654321; border-radius: 10px;">
-                        <p><strong>QR Code URL:</strong></p>
-                        <div style="word-break: break-all; font-family: monospace; background: #f0f0f0; padding: 10px; margin: 10px 0;">
-                            ${finalUrl}
-                        </div>
-                        <p><em>QR library still loading... Copy the URL above to test manually</em></p>
-                    </div>
-                `;
-                qrResult.style.display = 'block';
+                photoSection.className = 'section error';
+                photoDiv.innerHTML = '<strong style="color: red;">❌ NO PHOTOS FOUND</strong>';
             }
         }
 
-        // Test URL
-        function testUrl() {
-            const url = document.getElementById('galleryUrl').value.trim();
+        function updateSummary() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session');
             
-            if (!url) {
-                alert('Please enter a URL first!');
-                return;
-            }
+            let summary = '';
             
-            // Open in new tab
-            window.open(url, '_blank');
-        }
-
-        // Create sample session
-        function createSampleSession() {
-            const sessionId = `session_${Date.now()}`;
-            
-            // Generate sample photos
-            const samplePhotos = [];
-            for (let i = 0; i < 3; i++) {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = 400;
-                canvas.height = 300;
-                
-                // Create gradient background
-                const gradient = ctx.createLinearGradient(0, 0, 400, 300);
-                gradient.addColorStop(0, '#F5DEB3');
-                gradient.addColorStop(1, '#DEB887');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, 400, 300);
-                
-                // Add text
-                ctx.fillStyle = '#654321';
-                ctx.font = 'bold 36px Georgia';
-                ctx.textAlign = 'center';
-                ctx.fillText(`Sample Photo ${i + 1}`, 200, 120);
-                ctx.font = '20px Georgia';
-                ctx.fillText("Brittany's 22nd Birthday", 200, 160);
-                ctx.fillText('🤠 Test Photo 📸', 200, 190);
-                
-                samplePhotos.push(canvas.toDataURL('image/png'));
-            }
-            
-            // Store session
-            const sessionData = {
-                photos: samplePhotos,
-                date: new Date().toLocaleString(),
-                filter: 'western'
-            };
-            
-            localStorage.setItem(sessionId, JSON.stringify(sessionData));
-            
-            // Update display
-            refreshStorage();
-            
-            // Show result with QR code
-            const url = document.getElementById('galleryUrl').value.trim();
-            if (url) {
-                const separator = url.includes('?') ? '&' : '?';
-                const fullUrl = `${url}${separator}session=${sessionId}`;
-                document.getElementById('galleryUrl').value = fullUrl;
-                alert(`Sample session created! Session ID: ${sessionId}\n\nGenerate QR code to test!`);
+            if (localStorage.length === 0) {
+                summary = '❌ PROBLEM: No data in localStorage at all';
+            } else if (!sessionId) {
+                summary = '❌ PROBLEM: No session ID in URL - QR code issue';
             } else {
-                alert(`Sample session created! Session ID: ${sessionId}\n\nEnter your gallery URL and generate QR code to test!`);
+                const sessionData = localStorage.getItem(sessionId);
+                if (sessionData) {
+                    summary = '✅ SUCCESS: Session data found and should work';
+                } else {
+                    summary = '❌ PROBLEM: Session ID not found in storage - timing issue';
+                }
+            }
+            
+            document.getElementById('summary').innerHTML = summary;
+        }
+
+        function refreshData() {
+            updateUrlInfo();
+            updateStorageInfo();
+            updatePhotoInfo();
+            updateSummary();
+        }
+
+        function showAllData() {
+            let allData = 'ALL LOCALSTORAGE DATA:\n\n';
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                allData += `KEY: ${key}\n`;
+                allData += `VALUE: ${value.substring(0, 200)}${value.length > 200 ? '...' : ''}\n\n`;
+            }
+            
+            alert(allData);
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure? This will delete all stored photos!')) {
+                localStorage.clear();
+                alert('All data cleared!');
+                refreshData();
             }
         }
 
-        // Create test session
-        function createTestSession() {
-            createSampleSession();
-        }
-
-        // Build URL manually
-        function buildUrl() {
-            const baseUrl = document.getElementById('baseUrl').value.trim();
-            const sessionId = document.getElementById('sessionId').value.trim();
-            
-            if (!baseUrl) {
-                alert('Please enter a base URL!');
-                return;
-            }
-            
-            const finalSessionId = sessionId || `session_${Date.now()}`;
-            const separator = baseUrl.includes('?') ? '&' : '?';
-            const fullUrl = `${baseUrl}${separator}session=${finalSessionId}`;
-            
-            const resultDiv = document.getElementById('builtUrl');
-            resultDiv.innerHTML = `<strong>Built URL:</strong><br>${fullUrl}`;
-            resultDiv.style.display = 'block';
-            
-            document.getElementById('galleryUrl').value = fullUrl;
-        }
-
-        // Initialize
-        window.addEventListener('load', () => {
-            updatePageInfo();
-            refreshStorage();
-            
-            // Set default URL if on localhost or file://
-            if (location.hostname === 'localhost' || location.protocol === 'file:') {
-                document.getElementById('galleryUrl').value = location.href.replace('debug.html', 'gallery.html');
-            }
-        });
+        // Initialize on load
+        window.addEventListener('load', refreshData);
     </script>
 </body>
 </html>
