@@ -1029,36 +1029,6 @@
                 `;
             }
         }
-                    
-                } catch (qrError) {
-                    console.error('❌ Even simple QR failed:', qrError);
-                }
-                
-                // If even the simple QR failed, show manual instructions
-                qrContainer.innerHTML = `
-                    <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
-                        <strong>QR Library Error</strong><br>
-                        Photos saved successfully<br>
-                        <small>Visit gallery.html manually<br>to view your photos</small>
-                    </div>
-                `;
-                
-                // Update subtitle for manual case
-                const subtitle = document.getElementById('qrSubtitle');
-                if (subtitle) {
-                    subtitle.textContent = 'Visit gallery.html manually';
-                }
-                
-            } catch (error) {
-                console.error('❌ QR generation completely failed:', error);
-                qrContainer.innerHTML = `
-                    <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">
-                        <div style="background: red; color: white; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px;">❌ ERROR</div>
-                        <small>Check browser console<br>for details</small>
-                    </div>
-                `;
-            }
-        }
 
         // Initialize on load
         window.addEventListener('load', () => {
