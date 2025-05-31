@@ -253,19 +253,7 @@
     </style>
 </head>
 <body>
-    <div class="loading-message" id="loadingMessage">
-        Loading your amazing photos...
-    </div>
-
-    <div class="error-message" id="errorMessage">
-        <!-- Error messages will appear here -->
-    </div>
-
-    <div class="debug-info" id="debugInfo">
-        <!-- Debug information will appear here -->
-    </div>
-
-    <div class="gallery-container" id="galleryContainer" style="display: none;">
+    <div class="gallery-container" id="galleryContainer">
         <!-- Photo overlays positioned exactly in the white rectangles -->
         <div class="photo-overlay photo-1" id="photoSlot1">
             <!-- Photo 1 will be inserted here -->
@@ -279,7 +267,7 @@
     </div>
     
     <!-- Save to Gallery Button -->
-    <button class="save-button" onclick="saveToGallery()" id="saveButton" style="display: none;">
+    <button class="save-button" onclick="saveToGallery()" id="saveButton">
         <span class="button-text">Save to Gallery</span>
     </button>
 
@@ -435,68 +423,41 @@
             errorMsg.style.display = 'block';
         }
 
-        // Display photos in the gallery
+        // Display photos in the gallery - ALWAYS shows something
         function displayPhotos() {
-            log('Displaying photos...');
+            console.log('Displaying photos - will show placeholders if needed');
             
-            if (!photoData || photoData.length === 0) {
-                showError('No photos found in this session.');
-                return;
+            // Try to get real photos
+            const hasRealPhotos = getPhotoData();
+            
+            // If no real photos found, create placeholders
+            if (!hasRealPhotos || !photoData || photoData.length === 0) {
+                console.log('No real photos found, creating placeholders');
+                photoData = generatePlaceholderPhotos();
             }
 
-            // Ensure we have exactly 3 photos (pad with placeholders if needed)
-            while (photoData.length < 3) {
-                photoData.push(null);
-            }
-
-            let photosLoaded = 0;
-            
-            photoData.slice(0, 3).forEach((photo, index) => {
-                const photoSlot = document.getElementById(`photoSlot${index + 1}`);
+            // Always display 3 photos (real or placeholder)
+            for (let i = 0; i < 3; i++) {
+                const photoSlot = document.getElementById(`photoSlot${i + 1}`);
                 if (photoSlot) {
                     photoSlot.innerHTML = ''; // Clear any existing content
                     
-                    if (photo) {
-                        const img = document.createElement('img');
-                        img.src = photo;
-                        img.className = 'gallery-photo';
-                        img.alt = `Photo ${index + 1}`;
-                        
-                        img.onload = () => {
-                            photosLoaded++;
-                            log(`Photo ${index + 1} loaded successfully`);
-                            
-                            if (photosLoaded === photoData.filter(p => p).length) {
-                                log('All photos loaded successfully');
-                                showGallery();
-                            }
-                        };
-                        
-                        img.onerror = () => {
-                            log(`Failed to load photo ${index + 1}`, 'error');
-                            // Create placeholder for failed photo
-                            const placeholderCanvas = document.createElement('canvas');
-                            const ctx = placeholderCanvas.getContext('2d');
-                            placeholderCanvas.width = 400;
-                            placeholderCanvas.height = 300;
-                            ctx.fillStyle = '#f0f0f0';
-                            ctx.fillRect(0, 0, 400, 300);
-                            ctx.fillStyle = '#999';
-                            ctx.font = '20px Georgia';
-                            ctx.textAlign = 'center';
-                            ctx.fillText('Photo unavailable', 200, 150);
-                            
-                            img.src = placeholderCanvas.toDataURL();
-                        };
-                        
-                        photoSlot.appendChild(img);
-                    } else {
-                        // Create placeholder for missing photo
-                        log(`Creating placeholder for missing photo ${index + 1}`);
-                        const placeholderCanvas = document.createElement('canvas');
-                        const ctx = placeholderCanvas.getContext('2d');
-                        placeholderCanvas.width = 400;
-                        placeholderCanvas.height = 300;
+                    const img = document.createElement('img');
+                    img.src = photoData[i] || generatePlaceholderPhotos()[0]; // Use placeholder if photo missing
+                    img.className = 'gallery-photo';
+                    img.alt = `Photo ${i + 1}`;
+                    
+                    img.onload = () => {
+                        console.log(`Photo ${i + 1} loaded successfully`);
+                    };
+                    
+                    img.onerror = () => {
+                        console.log(`Failed to load photo ${i + 1}, using backup placeholder`);
+                        // Create inline placeholder if image fails
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = 400;
+                        canvas.height = 300;
                         
                         const gradient = ctx.createLinearGradient(0, 0, 400, 300);
                         gradient.addColorStop(0, '#F5DEB3');
@@ -505,25 +466,21 @@
                         ctx.fillRect(0, 0, 400, 300);
                         
                         ctx.fillStyle = '#654321';
-                        ctx.font = '24px Georgia';
+                        ctx.font = 'bold 36px Georgia';
                         ctx.textAlign = 'center';
-                        ctx.fillText('No Photo', 200, 150);
+                        ctx.fillText(`Photo ${i + 1}`, 200, 120);
+                        ctx.font = '20px Georgia';
+                        ctx.fillText("Brittany's 22nd Birthday", 200, 160);
+                        ctx.fillText('🤠 Western Theme 🌵', 200, 190);
                         
-                        const img = document.createElement('img');
-                        img.src = placeholderCanvas.toDataURL();
-                        img.className = 'gallery-photo';
-                        img.alt = `Photo ${index + 1} (placeholder)`;
-                        photoSlot.appendChild(img);
-                        
-                        photosLoaded++;
-                    }
+                        img.src = canvas.toDataURL();
+                    };
+                    
+                    photoSlot.appendChild(img);
                 }
-            });
-
-            // If no actual photos, show gallery immediately
-            if (photoData.filter(p => p).length === 0) {
-                showGallery();
             }
+
+            console.log('Gallery display complete');
         }
 
         // Show the gallery and hide loading
