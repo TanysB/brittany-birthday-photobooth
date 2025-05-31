@@ -790,7 +790,7 @@
             }
         }
 
-        // Countdown function - EFFECT PLAYS 2 SECONDS EARLIER
+        // Countdown function - EFFECT PLAYS 1.5 SECONDS BEFORE CAPTURE
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -802,10 +802,10 @@
                 countdownNumber.textContent = i;
                 countdownText.textContent = 'Get Ready!';
                 
-                // Start effect.mp3 when countdown hits 3 (2 seconds before capture)
-                if (i === 3) {
+                // Start effect.mp3 when countdown hits 2 (1.5 seconds before capture)
+                if (i === 2) {
                     playCameraEffect();
-                    console.log('Effect started at countdown 3 (2 seconds before capture)');
+                    console.log('Effect started at countdown 2 (1.5 seconds before capture)');
                 }
                 
                 console.log(`Countdown: ${i}`);
