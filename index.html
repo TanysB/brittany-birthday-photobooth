@@ -697,7 +697,7 @@
             }
         }
 
-        // Countdown function - sound effect plays 1.5 seconds before "Howdy"
+        // Countdown function - no sound effect during countdown
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -708,13 +708,6 @@
             for (let i = 5; i > 0; i--) {
                 countdownNumber.textContent = i;
                 countdownText.textContent = 'Get Ready!';
-                
-                // Start effect.mp3 when countdown hits 1 (1.5 seconds before photo)
-                if (i === 1) {
-                    playCameraEffect();
-                    console.log('Effect started at countdown 1 (1.5 seconds before photo)');
-                }
-                
                 console.log(`Countdown: ${i}`);
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
@@ -726,9 +719,13 @@
             countdownContainer.classList.add('hidden');
         }
 
-        // Capture individual photo WITH FILTER APPLIED
+        // Capture individual photo WITH FILTER APPLIED - SOUND PLAYS EXACTLY WHEN PHOTO TAKEN
         function capturePhotoWithFilter() {
             try {
+                // Play effect.mp3 exactly when photo is captured
+                playCameraEffect();
+                console.log('📸 Photo captured - effect.mp3 playing now');
+                
                 canvas.width = captureVideo.videoWidth;
                 canvas.height = captureVideo.videoHeight;
                 
@@ -824,7 +821,7 @@
             }
         }
 
-        // Generate QR code with multiple fallback methods
+        // Generate QR code and auto-download it silently
         function generateQRCodeWithFallback() {
             console.log('=== QR CODE GENERATION START ===');
             
@@ -872,6 +869,27 @@
                     qrContainer.innerHTML = qrImage;
                     
                     console.log('✅ QR CODE GENERATED SUCCESSFULLY!');
+                    
+                    // AUTO-DOWNLOAD QR CODE IMAGE SILENTLY
+                    setTimeout(() => {
+                        try {
+                            // Get the QR code image element
+                            const qrImg = qrContainer.querySelector('img');
+                            if (qrImg) {
+                                // Create download link
+                                const link = document.createElement('a');
+                                link.download = `QR_Code_${sessionId.slice(-8)}.png`;
+                                link.href = qrImg.src;
+                                link.style.display = 'none';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                console.log('🔽 QR code auto-downloaded silently');
+                            }
+                        } catch (downloadError) {
+                            console.error('QR auto-download failed:', downloadError);
+                        }
+                    }, 1000); // 1 second delay to ensure QR is fully generated
                     
                     // Update subtitle
                     const subtitle = document.getElementById('qrSubtitle');
