@@ -253,31 +253,131 @@
             statusDiv.className = `status-message status-${type}`;
         }
 
-        // Get photos from URL parameters
+        // Get photos from multiple sources (URL, localStorage, sessionStorage)
         function getPhotosFromURL() {
-            debugLog('🔍 Checking URL for photo data...');
+            debugLog('🔍 Checking multiple sources for photo data...');
             
             const urlParams = new URLSearchParams(window.location.search);
-            const photosParam = urlParams.get('photos');
             
-            if (!photosParam) {
-                debugLog('❌ No photos parameter in URL');
-                return false;
+            // METHOD 1: Check for photo ID (short URL approach)
+            const photoId = urlParams.get('id');
+            if (photoId) {
+                debugLog(`📋 Found photo ID: ${photoId}`);
+                
+                // Try localStorage first
+                try {
+                    const localData = localStorage.getItem(photoId);
+                    if (localData) {
+                        const parsed = JSON.parse(localData);
+                        if (parsed.photos && parsed.photos.length > 0) {
+                            debugLog(`✅ Found ${parsed.photos.length} photos in localStorage`);
+                            photoData = parsed.photos;
+                            return true;
+                        }
+                    }
+                } catch (e) {
+                    debugLog('❌ localStorage failed');
+                }
+                
+                // Try sessionStorage
+                try {
+                    const sessionData = sessionStorage.getItem(photoId);
+                    if (sessionData) {
+                        const parsed = JSON.parse(sessionData);
+                        if (parsed.photos && parsed.photos.length > 0) {
+                            debugLog(`✅ Found ${parsed.photos.length} photos in sessionStorage`);
+                            photoData = parsed.photos;
+                            return true;
+                        }
+                    }
+                } catch (e) {
+                    debugLog('❌ sessionStorage failed');
+                }
+                
+                debugLog('❌ Photo ID found but no matching data in storage');
             }
-
+            
+            // METHOD 2: Check for tiny photos in URL
+            const tinyPhotos = urlParams.get('tiny');
+            if (tinyPhotos) {
+                debugLog('📸 Found tiny photos in URL');
+                try {
+                    const decoded = atob(tinyPhotos);
+                    const tinyData = JSON.parse(decoded);
+                    
+                    if (tinyData.photos && tinyData.photos.length > 0) {
+                        debugLog(`✅ Found ${tinyData.photos.length} tiny photos in URL`);
+                        photoData = tinyData.photos;
+                        return true;
+                    }
+                } catch (error) {
+                    debugLog(`❌ Error decoding tiny photos: ${error.message}`);
+                }
+            }
+            
+            // METHOD 3: Check for full photos in URL (original method)
+            const photosParam = urlParams.get('photos');
+            if (photosParam) {
+                debugLog('📸 Found photos parameter in URL');
+                try {
+                    const decoded = atob(photosParam);
+                    const photoArray = JSON.parse(decoded);
+                    
+                    if (photoArray.photos && photoArray.photos.length > 0) {
+                        debugLog(`✅ Found ${photoArray.photos.length} full photos in URL`);
+                        photoData = photoArray.photos;
+                        return true;
+                    }
+                } catch (error) {
+                    debugLog(`❌ Error decoding photos: ${error.message}`);
+                }
+            }
+            
+            // METHOD 4: Check for any photos in browser storage (fallback)
+            debugLog('🔄 Searching all browser storage for photos...');
+            
+            // Check localStorage
             try {
-                // Decode the base64 encoded JSON
-                const decoded = atob(photosParam);
-                const photoArray = JSON.parse(decoded);
-                
-                debugLog(`✅ Found ${photoArray.length} photos in URL`);
-                photoData = photoArray;
-                return true;
-                
-            } catch (error) {
-                debugLog(`❌ Error decoding photos: ${error.message}`);
-                return false;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('photos_')) {
+                        const data = localStorage.getItem(key);
+                        if (data) {
+                            const parsed = JSON.parse(data);
+                            if (parsed.photos && parsed.photos.length > 0) {
+                                debugLog(`✅ Found fallback photos in localStorage: ${key}`);
+                                photoData = parsed.photos;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                debugLog('❌ localStorage search failed');
             }
+            
+            // Check sessionStorage
+            try {
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const key = sessionStorage.key(i);
+                    if (key && key.startsWith('photos_')) {
+                        const data = sessionStorage.getItem(key);
+                        if (data) {
+                            const parsed = JSON.parse(data);
+                            if (parsed.photos && parsed.photos.length > 0) {
+                                debugLog(`✅ Found fallback photos in sessionStorage: ${key}`);
+                                photoData = parsed.photos;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                debugLog('❌ sessionStorage search failed');
+            }
+            
+            debugLog('❌ No photos found in any source');
+            return false;
         }
 
         // Create placeholder image
