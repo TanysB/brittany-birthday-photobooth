@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brittany's 22nd Birthday - Photo Gallery</title>
+    <title>Your Photo Album - Brittany's 22nd Birthday</title>
     <style>
         * {
             margin: 0;
@@ -13,26 +13,37 @@
 
         body {
             font-family: 'Georgia', serif;
-            margin: 0;
-            padding: 20px;
             background: linear-gradient(135deg, #F5DEB3, #DEB887);
             min-height: 100vh;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
         }
 
-        .gallery-container {
+        .page-title {
+            text-align: center;
+            color: #654321;
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .album-container {
             position: relative;
             width: 100%;
-            max-width: 350px;
+            max-width: 400px;
             background-image: url('album.png');
             background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
             aspect-ratio: 1/2.5;
             margin-bottom: 30px;
+            border: 3px solid #654321;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
         }
 
         /* Photo overlays positioned exactly in the white rectangles of album.png */
@@ -65,57 +76,77 @@
             height: 24%;
         }
 
-        .gallery-photo {
+        .album-photo {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
         }
 
-        /* Save button */
-        .save-button {
-            background: linear-gradient(135deg, #654321, #4a2c1a, #3e2415);
-            color: #d4b896;
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .action-button {
+            background: linear-gradient(135deg, #654321, #4a2c1a);
+            color: #F5DEB3;
             border: none;
-            padding: 20px 45px;
-            border-radius: 50px;
-            font-size: 1.4em;
-            font-weight: normal;
-            font-family: 'Brush Script MT', cursive, 'Georgia', serif;
-            font-style: italic;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            font-family: 'Georgia', serif;
             cursor: pointer;
-            box-shadow: 
-                0 8px 25px rgba(52, 36, 21, 0.5),
-                0 4px 12px rgba(0, 0, 0, 0.4),
-                inset 0 2px 0 rgba(212, 184, 150, 0.2);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
-            position: relative;
-            overflow: hidden;
-            border: 2px solid #8B4513;
-            letter-spacing: 2px;
-            min-width: 280px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            min-width: 180px;
         }
 
-        .save-button:hover {
-            background: linear-gradient(135deg, #7d5436, #5a3422, #4a2c1a);
-            transform: translateY(-3px) scale(1.03);
-            box-shadow: 
-                0 12px 35px rgba(52, 36, 21, 0.6),
-                0 8px 20px rgba(0, 0, 0, 0.5),
-                inset 0 2px 0 rgba(212, 184, 150, 0.3);
-            color: #e6d4b8;
+        .action-button:hover {
+            background: linear-gradient(135deg, #7d5436, #5a3422);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
         }
 
-        /* Status message */
+        .action-button:active {
+            transform: translateY(0);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #228B22, #006400);
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(135deg, #32CD32, #228B22);
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #654321;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            color: #654321;
+            font-size: 1em;
+            line-height: 1.6;
+            max-width: 500px;
+        }
+
         .status-message {
             text-align: center;
             margin-bottom: 20px;
             padding: 15px 25px;
             border-radius: 15px;
-            font-size: 1.2em;
+            font-size: 1.1em;
             font-weight: bold;
-            max-width: 400px;
+            display: none;
         }
 
         .status-success {
@@ -130,140 +161,70 @@
             border: 2px solid #f44336;
         }
 
-        .status-info {
-            background: rgba(33, 150, 243, 0.9);
-            color: white;
-            border: 2px solid #2196F3;
-        }
-
-        /* Debug info */
-        .debug-panel {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.9);
-            color: white;
-            padding: 10px;
-            border-radius: 10px;
-            font-family: monospace;
-            font-size: 12px;
-            max-width: 300px;
-            z-index: 9999;
-            display: none;
-        }
-
-        .debug-toggle {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: #333;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 50%;
-            font-size: 16px;
-            z-index: 9998;
-            width: 50px;
-            height: 50px;
-        }
-
-        /* Success message */
-        .success-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #32CD32, #228B22);
-            color: white;
-            padding: 25px 45px;
-            border-radius: 25px;
-            font-size: 1.4em;
-            font-weight: bold;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-            z-index: 1000;
-            display: none;
-            text-align: center;
-            border: 3px solid white;
-        }
-
         /* Mobile responsive */
         @media (max-width: 768px) {
-            body { padding: 15px; }
-            .gallery-container { max-width: 320px; }
-            .save-button { 
-                padding: 18px 40px;
-                font-size: 1.3em;
-                min-width: 260px;
+            .page-title {
+                font-size: 1.5em;
+            }
+            
+            .album-container {
+                max-width: 350px;
+            }
+            
+            .action-button {
+                padding: 12px 25px;
+                font-size: 1em;
+                min-width: 150px;
+            }
+            
+            .buttons-container {
+                flex-direction: column;
+                align-items: center;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Status Message -->
-    <div id="statusMessage" class="status-message status-info">
-        📱 Loading photos...
+    <div class="page-title">
+        🤠 Your Photo Album 📸
     </div>
 
-    <!-- Gallery Container -->
-    <div class="gallery-container" id="galleryContainer">
+    <div class="status-message" id="statusMessage"></div>
+
+    <div class="album-container" id="albumContainer">
         <div class="photo-overlay photo-1" id="photoSlot1"></div>
         <div class="photo-overlay photo-2" id="photoSlot2"></div>
         <div class="photo-overlay photo-3" id="photoSlot3"></div>
     </div>
-    
-    <!-- Save Button -->
-    <button class="save-button" onclick="saveToGallery()" id="saveButton">
-        <span class="button-text">Save to Gallery</span>
-    </button>
 
-    <!-- Debug Panel -->
-    <div class="debug-panel" id="debugPanel"></div>
-    <button class="debug-toggle" onclick="toggleDebug()">🐛</button>
+    <div class="buttons-container">
+        <button class="action-button download-btn" onclick="downloadAlbum()">
+            📥 Download Album
+        </button>
+        <button class="action-button" onclick="shareAlbum()">
+            📱 Save to Photos
+        </button>
+    </div>
 
-    <!-- Success Popup -->
-    <div class="success-popup" id="successPopup">
-        Photos saved successfully!<br>
-        <small style="font-size: 0.8em;">Check your downloads folder!</small>
+    <div class="instructions">
+        <strong>💡 How to save:</strong><br>
+        • <strong>Download Album:</strong> Downloads the album image to your device<br>
+        • <strong>Save to Photos:</strong> Instructions for screenshotting<br>
+        • <strong>Long press:</strong> On mobile, long press the album to save image
     </div>
 
     <script>
         let photoData = [];
-        let debugMessages = [];
 
-        function debugLog(message, type = 'info') {
-            console.log(`[${type}] ${message}`);
-            debugMessages.push(`[${new Date().toLocaleTimeString()}] ${message}`);
-            if (debugMessages.length > 20) debugMessages = debugMessages.slice(-20);
-            updateDebugPanel();
-        }
-
-        function updateDebugPanel() {
-            const panel = document.getElementById('debugPanel');
-            panel.innerHTML = debugMessages.join('<br>');
-        }
-
-        function toggleDebug() {
-            const panel = document.getElementById('debugPanel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        }
-
-        function updateStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('statusMessage');
-            statusDiv.textContent = message;
-            statusDiv.className = `status-message status-${type}`;
-        }
-
-        // Get photos from multiple sources - AUTO-FIND RECENT PHOTOS
-        function getPhotosFromURL() {
-            debugLog('🔍 Searching for photos from any source...');
+        // Get photos from storage
+        function loadPhotos() {
+            console.log('🔍 Loading photos for album...');
             
-            const urlParams = new URLSearchParams(window.location.search);
+            // Try to find photos in storage
+            let foundPhotos = false;
             
-            // METHOD 1: Check if there's a flag indicating recent photos exist
+            // Method 1: Check for latest photos flag
             if (localStorage.getItem('has_recent_photos') === 'true' || sessionStorage.getItem('has_recent_photos') === 'true') {
-                debugLog('🎯 Recent photos flag found!');
-                
-                // Look for the latest photos
                 try {
                     let latestData = localStorage.getItem('latest_photos');
                     if (!latestData) {
@@ -273,159 +234,66 @@
                     if (latestData) {
                         const parsed = JSON.parse(latestData);
                         if (parsed.photos && parsed.photos.length > 0) {
-                            debugLog(`✅ Found ${parsed.photos.length} recent photos!`);
                             photoData = parsed.photos;
-                            return true;
+                            foundPhotos = true;
+                            console.log(`✅ Found ${photoData.length} recent photos`);
                         }
                     }
                 } catch (e) {
-                    debugLog('❌ Error loading recent photos');
+                    console.log('❌ Error loading recent photos');
                 }
             }
             
-            // METHOD 2: Check for photo ID (if URL has parameters)
-            const photoId = urlParams.get('id');
-            if (photoId) {
-                debugLog(`📋 Found photo ID: ${photoId}`);
+            // Method 2: Search all storage for any photos
+            if (!foundPhotos) {
+                console.log('🔄 Searching all storage for photos...');
                 
-                // Try localStorage first
+                // Check localStorage
                 try {
-                    const localData = localStorage.getItem(photoId);
-                    if (localData) {
-                        const parsed = JSON.parse(localData);
-                        if (parsed.photos && parsed.photos.length > 0) {
-                            debugLog(`✅ Found ${parsed.photos.length} photos in localStorage`);
-                            photoData = parsed.photos;
-                            return true;
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && (key.includes('photo') || key.includes('session') || key.includes('latest'))) {
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                const parsed = JSON.parse(data);
+                                if (parsed.photos && parsed.photos.length > 0) {
+                                    photoData = parsed.photos;
+                                    foundPhotos = true;
+                                    console.log(`✅ Found fallback photos in localStorage: ${key}`);
+                                    break;
+                                }
+                            }
                         }
                     }
                 } catch (e) {
-                    debugLog('❌ localStorage failed');
+                    console.log('❌ localStorage search failed');
                 }
                 
-                // Try sessionStorage
-                try {
-                    const sessionData = sessionStorage.getItem(photoId);
-                    if (sessionData) {
-                        const parsed = JSON.parse(sessionData);
-                        if (parsed.photos && parsed.photos.length > 0) {
-                            debugLog(`✅ Found ${parsed.photos.length} photos in sessionStorage`);
-                            photoData = parsed.photos;
-                            return true;
-                        }
-                    }
-                } catch (e) {
-                    debugLog('❌ sessionStorage failed');
-                }
-            }
-            
-            // METHOD 3: Check for tiny photos in URL
-            const tinyPhotos = urlParams.get('tiny');
-            if (tinyPhotos) {
-                debugLog('📸 Found tiny photos in URL');
-                try {
-                    const decoded = atob(tinyPhotos);
-                    const tinyData = JSON.parse(decoded);
-                    
-                    if (tinyData.photos && tinyData.photos.length > 0) {
-                        debugLog(`✅ Found ${tinyData.photos.length} tiny photos in URL`);
-                        photoData = tinyData.photos;
-                        return true;
-                    }
-                } catch (error) {
-                    debugLog(`❌ Error decoding tiny photos: ${error.message}`);
-                }
-            }
-            
-            // METHOD 4: Check for full photos in URL (original method)
-            const photosParam = urlParams.get('photos');
-            if (photosParam) {
-                debugLog('📸 Found photos parameter in URL');
-                try {
-                    const decoded = atob(photosParam);
-                    const photoArray = JSON.parse(decoded);
-                    
-                    if (photoArray.photos && photoArray.photos.length > 0) {
-                        debugLog(`✅ Found ${photoArray.photos.length} full photos in URL`);
-                        photoData = photoArray.photos;
-                        return true;
-                    }
-                } catch (error) {
-                    debugLog(`❌ Error decoding photos: ${error.message}`);
-                }
-            }
-            
-            // METHOD 5: Search ALL storage for ANY photos (last resort)
-            debugLog('🔄 Searching ALL storage for ANY photos...');
-            
-            // Check localStorage for any photo keys
-            try {
-                const allLocalKeys = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    allLocalKeys.push(localStorage.key(i));
-                }
-                
-                // Look for any keys that might contain photos
-                const photoKeys = allLocalKeys.filter(key => 
-                    key && (key.includes('photo') || key.includes('session') || key.includes('latest'))
-                );
-                
-                debugLog(`Found ${photoKeys.length} potential photo keys in localStorage: ${photoKeys.join(', ')}`);
-                
-                // Try each key
-                for (const key of photoKeys) {
+                // Check sessionStorage if still not found
+                if (!foundPhotos) {
                     try {
-                        const data = localStorage.getItem(key);
-                        if (data) {
-                            const parsed = JSON.parse(data);
-                            if (parsed.photos && parsed.photos.length > 0) {
-                                debugLog(`✅ Found fallback photos in localStorage: ${key} (${parsed.photos.length} photos)`);
-                                photoData = parsed.photos;
-                                return true;
+                        for (let i = 0; i < sessionStorage.length; i++) {
+                            const key = sessionStorage.key(i);
+                            if (key && (key.includes('photo') || key.includes('session') || key.includes('latest'))) {
+                                const data = sessionStorage.getItem(key);
+                                if (data) {
+                                    const parsed = JSON.parse(data);
+                                    if (parsed.photos && parsed.photos.length > 0) {
+                                        photoData = parsed.photos;
+                                        foundPhotos = true;
+                                        console.log(`✅ Found fallback photos in sessionStorage: ${key}`);
+                                        break;
+                                    }
+                                }
                             }
                         }
                     } catch (e) {
-                        // Skip invalid entries
+                        console.log('❌ sessionStorage search failed');
                     }
                 }
-            } catch (e) {
-                debugLog('❌ localStorage search failed');
             }
             
-            // Check sessionStorage for any photo keys
-            try {
-                const allSessionKeys = [];
-                for (let i = 0; i < sessionStorage.length; i++) {
-                    allSessionKeys.push(sessionStorage.key(i));
-                }
-                
-                const photoKeys = allSessionKeys.filter(key => 
-                    key && (key.includes('photo') || key.includes('session') || key.includes('latest'))
-                );
-                
-                debugLog(`Found ${photoKeys.length} potential photo keys in sessionStorage: ${photoKeys.join(', ')}`);
-                
-                for (const key of photoKeys) {
-                    try {
-                        const data = sessionStorage.getItem(key);
-                        if (data) {
-                            const parsed = JSON.parse(data);
-                            if (parsed.photos && parsed.photos.length > 0) {
-                                debugLog(`✅ Found fallback photos in sessionStorage: ${key} (${parsed.photos.length} photos)`);
-                                photoData = parsed.photos;
-                                return true;
-                            }
-                        }
-                    } catch (e) {
-                        // Skip invalid entries
-                    }
-                }
-            } catch (e) {
-                debugLog('❌ sessionStorage search failed');
-            }
-            
-            debugLog('❌ No photos found anywhere - showing placeholders');
-            return false;
+            return foundPhotos;
         }
 
         // Create placeholder image
@@ -451,124 +319,174 @@
             ctx.fillText("Brittany's 22nd Birthday", 200, 160);
             ctx.fillText('🤠 Western Theme 🌵', 200, 190);
             
-            // Debug info
-            ctx.font = '14px monospace';
-            ctx.fillText('No URL photo data found', 200, 230);
-            ctx.fillText('Check QR code generation', 200, 250);
-            
             return canvas.toDataURL();
         }
 
-        // Display photos
-        function displayPhotos() {
-            debugLog('📸 Starting photo display...');
+        // Display photos in album
+        function displayAlbum() {
+            console.log('📸 Displaying album...');
             
-            const hasPhotos = getPhotosFromURL();
+            const hasPhotos = loadPhotos();
             
-            if (hasPhotos && photoData.length > 0) {
-                updateStatus(`✅ Displaying ${photoData.length} photos`, 'success');
-                debugLog(`✅ Displaying ${photoData.length} real photos`);
+            // Display each photo slot
+            for (let i = 0; i < 3; i++) {
+                const slot = document.getElementById(`photoSlot${i + 1}`);
+                const img = document.createElement('img');
+                img.className = 'album-photo';
+                img.alt = `Photo ${i + 1}`;
                 
-                // Show green border briefly
-                document.body.style.border = '5px solid green';
-                setTimeout(() => document.body.style.border = 'none', 2000);
-                
-                // Display each photo
-                for (let i = 0; i < 3; i++) {
-                    const slot = document.getElementById(`photoSlot${i + 1}`);
-                    const img = document.createElement('img');
-                    img.className = 'gallery-photo';
-                    img.alt = `Photo ${i + 1}`;
-                    
-                    if (photoData[i]) {
-                        img.src = photoData[i];
-                        debugLog(`📷 Loaded photo ${i + 1} from URL data`);
-                    } else {
-                        img.src = createPlaceholder(i + 1);
-                        debugLog(`📝 Created placeholder for slot ${i + 1}`);
-                    }
-                    
-                    slot.innerHTML = '';
-                    slot.appendChild(img);
-                }
-                
-            } else {
-                updateStatus('❌ No photos found - showing placeholders', 'error');
-                debugLog('❌ No photos found, showing placeholders');
-                
-                // Show red border briefly
-                document.body.style.border = '5px solid red';
-                setTimeout(() => document.body.style.border = 'none', 2000);
-                
-                // Show placeholders
-                for (let i = 0; i < 3; i++) {
-                    const slot = document.getElementById(`photoSlot${i + 1}`);
-                    const img = document.createElement('img');
-                    img.className = 'gallery-photo';
+                if (hasPhotos && photoData[i]) {
+                    img.src = photoData[i];
+                    console.log(`📷 Loaded photo ${i + 1} from storage`);
+                } else {
                     img.src = createPlaceholder(i + 1);
-                    img.alt = `Placeholder ${i + 1}`;
-                    
-                    slot.innerHTML = '';
-                    slot.appendChild(img);
+                    console.log(`📝 Created placeholder for slot ${i + 1}`);
                 }
+                
+                slot.innerHTML = '';
+                slot.appendChild(img);
+            }
+            
+            if (hasPhotos) {
+                showStatus('✅ Your photos loaded successfully!', 'success');
+            } else {
+                showStatus('⚠️ No photos found - showing sample album', 'error');
             }
         }
 
-        // Save photos to device
-        async function saveToGallery() {
-            debugLog('💾 Save button clicked');
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.style.display = 'block';
             
-            if (photoData.length === 0) {
-                alert('No photos to save!');
-                return;
-            }
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 4000);
+        }
 
-            const button = document.getElementById('saveButton');
-            const originalText = button.innerHTML;
-            button.innerHTML = '<span class="button-text">Saving...</span>';
-            button.disabled = true;
-
+        // Download the album as an image
+        async function downloadAlbum() {
+            console.log('💾 Starting album download...');
+            
             try {
-                // Create a ZIP-like approach or download each photo
-                for (let i = 0; i < photoData.length; i++) {
+                const albumContainer = document.getElementById('albumContainer');
+                
+                // Use html2canvas library (loaded from CDN)
+                if (typeof html2canvas === 'undefined') {
+                    // Fallback: Create canvas manually
+                    await captureAlbumManually();
+                } else {
+                    // Use html2canvas for better quality
+                    const canvas = await html2canvas(albumContainer, {
+                        allowTaint: true,
+                        useCORS: true,
+                        scale: 2,
+                        backgroundColor: null
+                    });
+                    
+                    // Download the image
                     const link = document.createElement('a');
-                    link.download = `Brittany_Birthday_Photo_${i + 1}.jpg`;
-                    link.href = photoData[i];
+                    link.download = 'Brittany_22nd_Birthday_Album.png';
+                    link.href = canvas.toDataURL('image/png');
                     link.style.display = 'none';
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    
-                    // Small delay between downloads
-                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
-
-                // Show success message
-                const popup = document.getElementById('successPopup');
-                popup.style.display = 'block';
-                setTimeout(() => popup.style.display = 'none', 3000);
                 
-                debugLog('✅ All photos saved successfully');
-
+                showStatus('📥 Album downloaded successfully!', 'success');
+                console.log('✅ Album download completed');
+                
             } catch (error) {
-                debugLog(`❌ Save error: ${error.message}`);
-                alert('Error saving photos. Please try again.');
-            } finally {
-                button.innerHTML = originalText;
-                button.disabled = false;
+                console.error('❌ Download failed:', error);
+                showStatus('❌ Download failed. Try long-pressing the album to save.', 'error');
             }
         }
 
-        // Initialize
+        // Manual canvas capture (fallback)
+        async function captureAlbumManually() {
+            const albumContainer = document.getElementById('albumContainer');
+            const rect = albumContainer.getBoundingClientRect();
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = rect.width * 2;
+            canvas.height = rect.height * 2;
+            ctx.scale(2, 2);
+            
+            // Draw background (album.png)
+            const albumBg = new Image();
+            albumBg.onload = function() {
+                ctx.drawImage(albumBg, 0, 0, rect.width, rect.height);
+                
+                // Draw photos
+                let photosDrawn = 0;
+                for (let i = 0; i < 3; i++) {
+                    const img = document.getElementById(`photoSlot${i + 1}`).querySelector('img');
+                    if (img) {
+                        const photoImg = new Image();
+                        photoImg.onload = function() {
+                            const slot = document.getElementById(`photoSlot${i + 1}`);
+                            const slotRect = slot.getBoundingClientRect();
+                            const x = slotRect.left - rect.left;
+                            const y = slotRect.top - rect.top;
+                            
+                            ctx.drawImage(photoImg, x, y, slotRect.width, slotRect.height);
+                            photosDrawn++;
+                            
+                            // When all photos are drawn, download
+                            if (photosDrawn === 3) {
+                                const link = document.createElement('a');
+                                link.download = 'Brittany_22nd_Birthday_Album.png';
+                                link.href = canvas.toDataURL('image/png');
+                                link.style.display = 'none';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                            }
+                        };
+                        photoImg.src = img.src;
+                    }
+                }
+            };
+            albumBg.src = 'album.png';
+        }
+
+        // Share/save instructions
+        function shareAlbum() {
+            const instructions = `
+📱 To save this album to your phone:
+
+iPhone/iPad:
+• Long press on the album image above
+• Select "Save to Photos" or "Add to Photos"
+
+Android:
+• Long press on the album image above  
+• Select "Download image" or "Save image"
+
+Computer:
+• Right-click on the album image
+• Select "Save image as..."
+
+The album will be saved with your 3 photos positioned exactly as shown!
+            `;
+            
+            alert(instructions);
+        }
+
+        // Initialize page
         window.addEventListener('load', () => {
-            debugLog('🎉 Gallery page loaded');
-            debugLog(`📍 Current URL: ${window.location.href}`);
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            debugLog(`📋 URL parameters: ${Array.from(urlParams.entries()).map(([k,v]) => `${k}=${v.substring(0,50)}...`).join(', ')}`);
-            
-            displayPhotos();
+            console.log('🎉 Album page loaded');
+            displayAlbum();
         });
     </script>
+    
+    <!-- Optional: Load html2canvas for better capture quality -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
