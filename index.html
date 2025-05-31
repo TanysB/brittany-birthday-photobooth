@@ -593,17 +593,6 @@
                 console.log('Error stopping camera:', error);
             }
             
-            // Store photos silently for admin access later - NO DOWNLOADS
-            if (capturedPhotos && capturedPhotos.length > 0) {
-                try {
-                    console.log('📁 Storing photos for later admin access...');
-                    storePhotosForAdmin();
-                    console.log('✅ Photos stored successfully - no downloads triggered');
-                } catch (error) {
-                    console.error('Photo storage failed:', error);
-                }
-            }
-            
             // Complete reset of all variables and UI state
             capturedPhotos = [];
             currentFilter = 'none';
@@ -628,119 +617,8 @@
             
             // Go back to start page
             showPage('startPage');
-            clearOldPhotoSessions();
             
             console.log('Successfully returned to start page - complete reset done');
-        }
-
-        // Store photos in persistent storage for later admin access
-        function storePhotosForAdmin() {
-            try {
-                const timestamp = Date.now();
-                const sessionKey = `photos_session_${timestamp}`;
-                
-                const sessionData = {
-                    timestamp: timestamp,
-                    date: new Date().toLocaleString(),
-                    filter: currentFilter,
-                    photos: capturedPhotos.filter(photo => photo !== null)
-                };
-                
-                // Store this session's photos
-                localStorage.setItem(sessionKey, JSON.stringify(sessionData));
-                
-                // Keep a master list of all sessions for admin page
-                let allSessions = [];
-                try {
-                    const existingSessions = localStorage.getItem('admin_photo_sessions');
-                    if (existingSessions) {
-                        allSessions = JSON.parse(existingSessions);
-                    }
-                } catch (e) {
-                    console.log('No existing sessions found');
-                }
-                
-                // Add this session to the master list
-                allSessions.push({
-                    sessionKey: sessionKey,
-                    timestamp: timestamp,
-                    date: new Date().toLocaleString(),
-                    filter: currentFilter,
-                    photoCount: sessionData.photos.length
-                });
-                
-                // Keep only the last 50 sessions to prevent storage overflow
-                if (allSessions.length > 50) {
-                    const oldSessions = allSessions.slice(0, -50);
-                    oldSessions.forEach(session => {
-                        localStorage.removeItem(session.sessionKey);
-                    });
-                    allSessions = allSessions.slice(-50);
-                }
-                
-                localStorage.setItem('admin_photo_sessions', JSON.stringify(allSessions));
-                
-                console.log(`📁 Photos stored in session: ${sessionKey}`);
-                console.log(`📊 Total sessions: ${allSessions.length}`);
-                
-            } catch (error) {
-                console.error('Failed to store photos for admin:', error);
-            }
-        }
-
-        // Clear old photo sessions to prevent localStorage from getting full - ENHANCED
-        function clearOldPhotoSessions(forceCleanup = false) {
-            try {
-                const keys = Object.keys(localStorage);
-                const photoKeys = keys.filter(key => key.startsWith('photos_') || key.startsWith('session_'));
-                
-                console.log(`🧹 Found ${photoKeys.length} existing sessions`);
-                
-                if (forceCleanup) {
-                    // AGGRESSIVE CLEANUP: Remove all but the most recent session
-                    if (photoKeys.length > 1) {
-                        const sortedKeys = photoKeys.sort();
-                        const keysToRemove = sortedKeys.slice(0, -1); // Keep only the last one
-                        
-                        keysToRemove.forEach(key => {
-                            try {
-                                localStorage.removeItem(key);
-                                console.log(`🗑️ Force removed: ${key}`);
-                            } catch (e) {
-                                console.log(`❌ Could not remove: ${key}`);
-                            }
-                        });
-                        
-                        console.log(`🧹 Force cleanup: removed ${keysToRemove.length} sessions`);
-                    }
-                } else {
-                    // NORMAL CLEANUP: Keep only the 3 most recent sessions
-                    if (photoKeys.length > 3) {
-                        const sortedKeys = photoKeys.sort();
-                        const keysToRemove = sortedKeys.slice(0, -3); // Keep only the last 3
-                        
-                        keysToRemove.forEach(key => {
-                            try {
-                                localStorage.removeItem(key);
-                                console.log(`🗑️ Removed old session: ${key}`);
-                            } catch (e) {
-                                console.log(`❌ Could not remove: ${key}`);
-                            }
-                        });
-                        
-                        console.log(`🧹 Normal cleanup: removed ${keysToRemove.length} sessions`);
-                    }
-                }
-                
-                // Show remaining storage info
-                const remainingKeys = Object.keys(localStorage).filter(key => 
-                    key.startsWith('photos_') || key.startsWith('session_')
-                );
-                console.log(`📊 Remaining sessions: ${remainingKeys.length}`);
-                
-            } catch (error) {
-                console.log('❌ Could not clear old sessions:', error);
-            }
         }
 
         // Set filter
@@ -864,7 +742,7 @@
             }
         }
 
-        // Capture individual photo WITH FILTER APPLIED - OPTIMIZED SIZE
+        // Capture individual photo WITH FILTER APPLIED - SUPER OPTIMIZED SIZE FOR URL
         function capturePhotoWithFilter() {
             try {
                 console.log('📸 Photo captured');
@@ -872,9 +750,9 @@
                 // Show captured message
                 showCapturedMessage();
                 
-                // OPTIMIZE: Use smaller canvas size to reduce file size
-                const maxWidth = 800;  // Reduced from full video width
-                const maxHeight = 600; // Reduced from full video height
+                // SUPER OPTIMIZE: Use very small canvas size for URL transmission
+                const maxWidth = 400;  // Much smaller for URL
+                const maxHeight = 300; // Much smaller for URL
                 
                 const videoWidth = captureVideo.videoWidth;
                 const videoHeight = captureVideo.videoHeight;
@@ -906,8 +784,8 @@
                     ctx.putImageData(filteredImageData, 0, 0);
                 }
                 
-                // Use JPEG with compression instead of PNG to save space
-                return canvas.toDataURL('image/jpeg', 0.8); // 80% quality = much smaller files
+                // Use JPEG with HIGH compression for URL transmission
+                return canvas.toDataURL('image/jpeg', 0.5); // 50% quality = very small files
             } catch (error) {
                 console.error('Error capturing photo:', error);
                 return null;
@@ -979,7 +857,7 @@
                 // Generate QR code with a delay to ensure page is loaded
                 console.log('Generating QR code...');
                 setTimeout(() => {
-                    generateQRCodeWithFallback();
+                    generateQRCodeWithPhotosInURL();
                 }, 500);
                 
             } catch (error) {
@@ -989,9 +867,9 @@
             }
         }
 
-        // ENHANCED QR CODE GENERATION WITH STORAGE OPTIMIZATION
-        function generateQRCodeWithFallback() {
-            console.log('=== QR CODE GENERATION START ===');
+        // FIXED: Put photos directly in QR URL instead of localStorage
+        function generateQRCodeWithPhotosInURL() {
+            console.log('=== QR CODE GENERATION WITH URL PHOTOS ===');
             
             const qrContainer = document.getElementById('qrcode');
             if (!qrContainer) {
@@ -1011,79 +889,21 @@
                     return;
                 }
                 
-                // STORAGE OPTIMIZATION: Clear old sessions BEFORE storing new ones
-                clearOldPhotoSessions(true); // Force cleanup
-                
-                // Create session ID
-                const sessionId = 'session_' + Date.now();
-                console.log(`🔑 Created session ID: ${sessionId}`);
-                
-                // Calculate storage size before storing
-                const sessionData = {
+                // Create photo data for URL
+                const photoData = {
                     photos: validPhotos,
-                    timestamp: Date.now(),
                     filter: currentFilter,
-                    date: new Date().toLocaleString()
+                    timestamp: Date.now()
                 };
                 
-                const dataString = JSON.stringify(sessionData);
-                const dataSizeMB = (dataString.length / 1024 / 1024).toFixed(2);
-                console.log(`📊 Session data size: ${dataSizeMB} MB`);
+                // Convert to JSON and encode for URL
+                const jsonString = JSON.stringify(photoData);
+                const encodedPhotos = btoa(jsonString);
                 
-                // Store photos in localStorage with error handling
-                try {
-                    localStorage.setItem(sessionId, dataString);
-                    console.log('✅ Photos stored in localStorage successfully');
-                    
-                    // DEBUG: Verify storage worked
-                    const testRetrieve = localStorage.getItem(sessionId);
-                    if (testRetrieve) {
-                        const parsed = JSON.parse(testRetrieve);
-                        console.log(`✅ Storage verified: ${parsed.photos.length} photos stored`);
-                    } else {
-                        console.error('❌ Storage verification failed');
-                    }
-                } catch (storageError) {
-                    console.error('❌ localStorage failed:', storageError);
-                    
-                    if (storageError.name === 'QuotaExceededError') {
-                        console.log('🧹 Storage full, attempting aggressive cleanup...');
-                        
-                        // Try aggressive cleanup
-                        try {
-                            // Clear ALL old sessions
-                            const allKeys = Object.keys(localStorage);
-                            const oldSessionKeys = allKeys.filter(key => 
-                                key.startsWith('session_') || key.startsWith('photos_')
-                            );
-                            
-                            oldSessionKeys.forEach(key => {
-                                localStorage.removeItem(key);
-                                console.log(`🗑️ Removed: ${key}`);
-                            });
-                            
-                            // Try storing again
-                            localStorage.setItem(sessionId, dataString);
-                            console.log('✅ Photos stored after cleanup');
-                            
-                        } catch (secondError) {
-                            console.error('❌ Storage still failed after cleanup:', secondError);
-                            qrContainer.innerHTML = `
-                                <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">
-                                    ❌ Storage Full<br>
-                                    <small>Clear browser data<br>
-                                    Photos displayed below</small>
-                                </div>
-                            `;
-                            return;
-                        }
-                    } else {
-                        qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">Storage Error</div>';
-                        return;
-                    }
-                }
+                console.log(`📊 Photo data size: ${(jsonString.length / 1024).toFixed(1)} KB`);
+                console.log(`📊 Encoded size: ${(encodedPhotos.length / 1024).toFixed(1)} KB`);
                 
-                // Create QR URL
+                // Create QR URL with photos in URL parameter
                 let qrUrl;
                 try {
                     // Get current page URL
@@ -1091,13 +911,46 @@
                     console.log('📍 Current location:', currentLocation.href);
                     
                     // Use full absolute URL for maximum compatibility
-                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?session=${sessionId}`;
-                    console.log('🔗 QR URL:', qrUrl);
+                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?photos=${encodedPhotos}`;
+                    console.log('🔗 QR URL length:', qrUrl.length);
                     
                 } catch (urlError) {
                     console.error('❌ URL generation failed:', urlError);
-                    qrUrl = `gallery.html?session=${sessionId}`;
-                    console.log('🔗 Fallback QR URL:', qrUrl);
+                    qrUrl = `gallery.html?photos=${encodedPhotos}`;
+                    console.log('🔗 Fallback QR URL length:', qrUrl.length);
+                }
+                
+                // Check if URL is too long for QR code
+                if (qrUrl.length > 2000) {
+                    console.warn('⚠️ URL too long, using compressed photos');
+                    
+                    // Try with fewer photos or lower quality
+                    const compressedPhotos = validPhotos.map(photo => {
+                        // Create a smaller canvas to compress further
+                        const img = new Image();
+                        img.src = photo;
+                        
+                        const tempCanvas = document.createElement('canvas');
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCanvas.width = 200; // Even smaller
+                        tempCanvas.height = 150;
+                        
+                        tempCtx.drawImage(img, 0, 0, 200, 150);
+                        return tempCanvas.toDataURL('image/jpeg', 0.3); // Very low quality
+                    });
+                    
+                    const compressedData = {
+                        photos: compressedPhotos,
+                        filter: currentFilter,
+                        timestamp: Date.now()
+                    };
+                    
+                    const compressedJson = JSON.stringify(compressedData);
+                    const compressedEncoded = btoa(compressedJson);
+                    
+                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?photos=${compressedEncoded}`;
+                    
+                    console.log(`📊 Compressed URL length: ${qrUrl.length}`);
                 }
                 
                 // Generate QR code with multiple attempts
@@ -1111,7 +964,7 @@
                         throw new Error('QR code library not loaded');
                     }
                     
-                    const qr = qrcode(0, 'L'); // Low error correction
+                    const qr = qrcode(0, 'L'); // Low error correction for more data
                     qr.addData(qrUrl);
                     qr.make();
                     
@@ -1119,7 +972,7 @@
                     qrContainer.innerHTML = qrImage;
                     qrGenerated = true;
                     
-                    console.log('✅ QR CODE GENERATED SUCCESSFULLY!');
+                    console.log('✅ QR CODE WITH PHOTOS GENERATED SUCCESSFULLY!');
                     
                     // Add success indicator
                     setTimeout(() => {
@@ -1155,15 +1008,15 @@
                     }
                 }
                 
-                // Final fallback: Show session info
+                // Final fallback: Show error but with manual URL
                 if (!qrGenerated) {
                     console.error('❌ All QR generation attempts failed');
                     qrContainer.innerHTML = `
                         <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
-                            <strong>Photos Ready!</strong><br>
-                            Session: ${sessionId.slice(-8)}<br>
-                            <small>Visit gallery.html manually<br>
-                            URL: gallery.html?session=${sessionId}</small>
+                            <strong>QR Failed</strong><br>
+                            Photos ready but<br>
+                            too large for QR<br>
+                            <small>Try fewer photos</small>
                         </div>
                     `;
                 } else {
@@ -1173,7 +1026,7 @@
                             const qrImg = qrContainer.querySelector('img');
                             if (qrImg && qrImg.src) {
                                 const link = document.createElement('a');
-                                link.download = `QR_Code_${sessionId.slice(-8)}.png`;
+                                link.download = `QR_Code_Photos_${Date.now().toString().slice(-8)}.png`;
                                 link.href = qrImg.src;
                                 link.style.display = 'none';
                                 document.body.appendChild(link);
@@ -1190,19 +1043,20 @@
                 // Update subtitle
                 const subtitle = document.getElementById('qrSubtitle');
                 if (subtitle) {
-                    subtitle.textContent = qrGenerated ? 'Scan to view photos!' : 'Photos saved - check manually';
+                    subtitle.textContent = qrGenerated ? 'Scan to view photos!' : 'Photos ready - QR too large';
                 }
                 
                 // DEBUG: Show what URL is encoded in QR
-                console.log('📱 QR Code contains URL:', qrUrl);
-                console.log('📱 Session data stored with key:', sessionId);
+                console.log('📱 QR Code contains URL with embedded photos');
+                console.log('📱 URL length:', qrUrl.length);
+                console.log('📱 Photo count:', validPhotos.length);
                 
             } catch (error) {
-                console.error('❌ All QR methods failed:', error);
+                console.error('❌ QR generation failed:', error);
                 qrContainer.innerHTML = `
                     <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">
                         <div style="background: red; color: white; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px;">❌ QR FAILED</div>
-                        <small>Photos saved locally<br>Session: ${Date.now().toString().slice(-8)}</small>
+                        <small>Error generating QR<br>Photos displayed above</small>
                     </div>
                 `;
             }
