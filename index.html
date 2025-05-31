@@ -923,7 +923,7 @@
             }
         }
 
-        // Generate QR code and auto-download it silently
+        // Generate QR code with absolute URL and better error handling
         function generateQRCodeWithFallback() {
             console.log('=== QR CODE GENERATION START ===');
             
@@ -945,40 +945,51 @@
                     return;
                 }
                 
-                // Method 1: Simple QR with session ID (most reliable)
+                // Create session ID with current timestamp
                 const sessionId = 'session_' + Date.now();
                 console.log('Creating session ID:', sessionId);
                 
-                // Store photos in localStorage
+                // Store photos in localStorage with session data
                 try {
-                    localStorage.setItem(sessionId, JSON.stringify(validPhotos));
-                    console.log('Photos stored in localStorage');
+                    const sessionData = {
+                        photos: validPhotos,
+                        timestamp: Date.now(),
+                        filter: currentFilter,
+                        date: new Date().toLocaleString()
+                    };
+                    localStorage.setItem(sessionId, JSON.stringify(sessionData));
+                    console.log('Photos stored in localStorage with key:', sessionId);
                 } catch (storageError) {
                     console.error('localStorage failed:', storageError);
+                    qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">Storage Error<br>Photos captured locally</div>';
+                    return;
                 }
                 
-                // Create simple QR code
-                const qrUrl = `gallery.html?session=${sessionId}`;
+                // Create QR code with FULL URL path
+                const currentUrl = window.location.href;
+                const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+                const qrUrl = `${baseUrl}gallery.html?session=${sessionId}`;
+                
                 console.log('QR URL:', qrUrl);
+                console.log('Base URL:', baseUrl);
                 
                 try {
-                    const qr = qrcode(0, 'L'); // Low error correction for simplicity
+                    const qr = qrcode(0, 'L'); // Low error correction for reliability
                     qr.addData(qrUrl);
                     qr.make();
                     
-                    // BIGGER QR CODE - increased size parameters
-                    const qrImage = qr.createImgTag(8, 0); // Much larger QR code
+                    // Generate QR code image
+                    const qrImage = qr.createImgTag(8, 0);
                     qrContainer.innerHTML = qrImage;
                     
                     console.log('✅ QR CODE GENERATED SUCCESSFULLY!');
+                    console.log('📱 Scan this QR to access photos at:', qrUrl);
                     
                     // AUTO-DOWNLOAD QR CODE IMAGE SILENTLY
                     setTimeout(() => {
                         try {
-                            // Get the QR code image element
                             const qrImg = qrContainer.querySelector('img');
                             if (qrImg) {
-                                // Create download link
                                 const link = document.createElement('a');
                                 link.download = `QR_Code_${sessionId.slice(-8)}.png`;
                                 link.href = qrImg.src;
@@ -991,28 +1002,31 @@
                         } catch (downloadError) {
                             console.error('QR auto-download failed:', downloadError);
                         }
-                    }, 1000); // 1 second delay to ensure QR is fully generated
+                    }, 1000);
                     
-                    // Update subtitle
+                    // Update subtitle with session info
                     const subtitle = document.getElementById('qrSubtitle');
                     if (subtitle) {
                         subtitle.textContent = 'Scan to view photos!';
                     }
                     
+                    // Test the URL in console for debugging
+                    console.log('🔗 Test this URL manually:', qrUrl);
+                    
                 } catch (qrError) {
                     console.error('QR generation failed:', qrError);
                     qrContainer.innerHTML = `
                         <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">
-                            <strong>QR Failed</strong><br>
-                            Photos saved locally<br>
-                            ID: ${sessionId.slice(-8)}
+                            <strong>QR Error</strong><br>
+                            Session: ${sessionId.slice(-8)}<br>
+                            <small>Photos saved locally</small>
                         </div>
                     `;
                 }
                 
             } catch (error) {
                 console.error('QR generation error:', error);
-                qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">Photos captured!<br>Check iPad downloads</div>';
+                qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">Photos captured!<br>Check admin page</div>';
             }
         }
 
