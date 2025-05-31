@@ -253,13 +253,37 @@
             statusDiv.className = `status-message status-${type}`;
         }
 
-        // Get photos from multiple sources (URL, localStorage, sessionStorage)
+        // Get photos from multiple sources - AUTO-FIND RECENT PHOTOS
         function getPhotosFromURL() {
-            debugLog('🔍 Checking multiple sources for photo data...');
+            debugLog('🔍 Searching for photos from any source...');
             
             const urlParams = new URLSearchParams(window.location.search);
             
-            // METHOD 1: Check for photo ID (short URL approach)
+            // METHOD 1: Check if there's a flag indicating recent photos exist
+            if (localStorage.getItem('has_recent_photos') === 'true' || sessionStorage.getItem('has_recent_photos') === 'true') {
+                debugLog('🎯 Recent photos flag found!');
+                
+                // Look for the latest photos
+                try {
+                    let latestData = localStorage.getItem('latest_photos');
+                    if (!latestData) {
+                        latestData = sessionStorage.getItem('latest_photos');
+                    }
+                    
+                    if (latestData) {
+                        const parsed = JSON.parse(latestData);
+                        if (parsed.photos && parsed.photos.length > 0) {
+                            debugLog(`✅ Found ${parsed.photos.length} recent photos!`);
+                            photoData = parsed.photos;
+                            return true;
+                        }
+                    }
+                } catch (e) {
+                    debugLog('❌ Error loading recent photos');
+                }
+            }
+            
+            // METHOD 2: Check for photo ID (if URL has parameters)
             const photoId = urlParams.get('id');
             if (photoId) {
                 debugLog(`📋 Found photo ID: ${photoId}`);
@@ -293,11 +317,9 @@
                 } catch (e) {
                     debugLog('❌ sessionStorage failed');
                 }
-                
-                debugLog('❌ Photo ID found but no matching data in storage');
             }
             
-            // METHOD 2: Check for tiny photos in URL
+            // METHOD 3: Check for tiny photos in URL
             const tinyPhotos = urlParams.get('tiny');
             if (tinyPhotos) {
                 debugLog('📸 Found tiny photos in URL');
@@ -315,7 +337,7 @@
                 }
             }
             
-            // METHOD 3: Check for full photos in URL (original method)
+            // METHOD 4: Check for full photos in URL (original method)
             const photosParam = urlParams.get('photos');
             if (photosParam) {
                 debugLog('📸 Found photos parameter in URL');
@@ -333,50 +355,76 @@
                 }
             }
             
-            // METHOD 4: Check for any photos in browser storage (fallback)
-            debugLog('🔄 Searching all browser storage for photos...');
+            // METHOD 5: Search ALL storage for ANY photos (last resort)
+            debugLog('🔄 Searching ALL storage for ANY photos...');
             
-            // Check localStorage
+            // Check localStorage for any photo keys
             try {
+                const allLocalKeys = [];
                 for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && key.startsWith('photos_')) {
+                    allLocalKeys.push(localStorage.key(i));
+                }
+                
+                // Look for any keys that might contain photos
+                const photoKeys = allLocalKeys.filter(key => 
+                    key && (key.includes('photo') || key.includes('session') || key.includes('latest'))
+                );
+                
+                debugLog(`Found ${photoKeys.length} potential photo keys in localStorage: ${photoKeys.join(', ')}`);
+                
+                // Try each key
+                for (const key of photoKeys) {
+                    try {
                         const data = localStorage.getItem(key);
                         if (data) {
                             const parsed = JSON.parse(data);
                             if (parsed.photos && parsed.photos.length > 0) {
-                                debugLog(`✅ Found fallback photos in localStorage: ${key}`);
+                                debugLog(`✅ Found fallback photos in localStorage: ${key} (${parsed.photos.length} photos)`);
                                 photoData = parsed.photos;
                                 return true;
                             }
                         }
+                    } catch (e) {
+                        // Skip invalid entries
                     }
                 }
             } catch (e) {
                 debugLog('❌ localStorage search failed');
             }
             
-            // Check sessionStorage
+            // Check sessionStorage for any photo keys
             try {
+                const allSessionKeys = [];
                 for (let i = 0; i < sessionStorage.length; i++) {
-                    const key = sessionStorage.key(i);
-                    if (key && key.startsWith('photos_')) {
+                    allSessionKeys.push(sessionStorage.key(i));
+                }
+                
+                const photoKeys = allSessionKeys.filter(key => 
+                    key && (key.includes('photo') || key.includes('session') || key.includes('latest'))
+                );
+                
+                debugLog(`Found ${photoKeys.length} potential photo keys in sessionStorage: ${photoKeys.join(', ')}`);
+                
+                for (const key of photoKeys) {
+                    try {
                         const data = sessionStorage.getItem(key);
                         if (data) {
                             const parsed = JSON.parse(data);
                             if (parsed.photos && parsed.photos.length > 0) {
-                                debugLog(`✅ Found fallback photos in sessionStorage: ${key}`);
+                                debugLog(`✅ Found fallback photos in sessionStorage: ${key} (${parsed.photos.length} photos)`);
                                 photoData = parsed.photos;
                                 return true;
                             }
                         }
+                    } catch (e) {
+                        // Skip invalid entries
                     }
                 }
             } catch (e) {
                 debugLog('❌ sessionStorage search failed');
             }
             
-            debugLog('❌ No photos found in any source');
+            debugLog('❌ No photos found anywhere - showing placeholders');
             return false;
         }
 
