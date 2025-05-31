@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Booth Admin - All Photos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #F5DEB3, #DEB887);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .admin-header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(139, 69, 19, 0.9);
+            color: #F5DEB3;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .admin-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .admin-header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .stats-bar {
+            background: rgba(101, 67, 33, 0.8);
+            color: #F5DEB3;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+            margin: 5px;
+        }
+
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #654321, #4a2c1a);
+            color: #F5DEB3;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-family: 'Georgia', serif;
+            cursor: pointer;
+            margin: 5px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #7d5436, #5a3422);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #cc4125, #a53420);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #e04528, #c73d24);
+        }
+
+        .sessions-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .session-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border: 2px solid #DEB887;
+        }
+
+        .session-header {
+            border-bottom: 2px solid #DEB887;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        .session-date {
+            font-size: 1.1em;
+            color: #654321;
+            font-weight: bold;
+        }
+
+        .session-info {
+            font-size: 0.9em;
+            color: #8B4513;
+            margin-top: 5px;
+        }
+
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .photo-thumbnail {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #DEB887;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .photo-thumbnail:hover {
+            transform: scale(1.05);
+            border-color: #654321;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 0.9em;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-content {
+            background: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #654321;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .modal-photo {
+            width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #654321;
+        }
+
+        .empty-state h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .empty-state p {
+            font-size: 1.2em;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .sessions-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-bar {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .session-actions {
+                flex-direction: column;
+            }
+            
+            .btn-small {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <h1>📸 Brittany's Birthday Photo Booth Admin</h1>
+        <p>Manage and download all captured photos</p>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-item">
+            <span class="stat-number" id="totalSessions">0</span>
+            <span class="stat-label">Sessions</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number" id="totalPhotos">0</span>
+            <span class="stat-label">Total Photos</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number" id="storageUsed">0MB</span>
+            <span class="stat-label">Storage Used</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="refreshData()">🔄 Refresh</button>
+        <button class="btn" onclick="downloadAllPhotos()">📥 Download All Photos</button>
+        <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+    </div>
+
+    <div class="sessions-container" id="sessionsContainer">
+        <!-- Sessions will be loaded here -->
+    </div>
+
+    <div class="empty-state" id="emptyState" style="display: none;">
+        <h2>📷 No Photos Yet</h2>
+        <p>Photos will appear here after people use the photo booth</p>
+    </div>
+
+    <!-- Modal for viewing full-size photos -->
+    <div id="photoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <img id="modalPhoto" class="modal-photo" src="" alt="Full size photo">
+        </div>
+    </div>
+
+    <script>
+        let allSessions = [];
+
+        // Load and display all photo sessions
+        function loadSessions() {
+            try {
+                const sessionsData = localStorage.getItem('admin_photo_sessions');
+                if (sessionsData) {
+                    allSessions = JSON.parse(sessionsData);
+                    allSessions.sort((a, b) => b.timestamp - a.timestamp); // Most recent first
+                } else {
+                    allSessions = [];
+                }
+                
+                displaySessions();
+                updateStats();
+                
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                allSessions = [];
+                displaySessions();
+            }
+        }
+
+        // Display all sessions
+        function displaySessions() {
+            const container = document.getElementById('sessionsContainer');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (allSessions.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            container.style.display = 'grid';
+            emptyState.style.display = 'none';
+            
+            container.innerHTML = '';
+            
+            allSessions.forEach((session, index) => {
+                const sessionCard = createSessionCard(session, index);
+                container.appendChild(sessionCard);
+            });
+        }
+
+        // Create a session card
+        function createSessionCard(session, index) {
+            const card = document.createElement('div');
+            card.className = 'session-card';
+            
+            // Load session photos
+            let sessionPhotos = [];
+            try {
+                const sessionData = localStorage.getItem(session.sessionKey);
+                if (sessionData) {
+                    const data = JSON.parse(sessionData);
+                    sessionPhotos = data.photos || [];
+                }
+            } catch (e) {
+                console.error('Error loading session photos:', e);
+            }
+            
+            card.innerHTML = `
+                <div class="session-header">
+                    <div class="session-date">${session.date}</div>
+                    <div class="session-info">
+                        Filter: ${session.filter || 'None'} • ${sessionPhotos.length} photos
+                    </div>
+                </div>
+                
+                <div class="photos-grid" id="photos-${index}">
+                    ${sessionPhotos.map((photo, photoIndex) => `
+                        <img src="${photo}" 
+                             class="photo-thumbnail" 
+                             onclick="viewPhoto('${photo}')"
+                             alt="Photo ${photoIndex + 1}">
+                    `).join('')}
+                </div>
+                
+                <div class="session-actions">
+                    <button class="btn btn-small" onclick="downloadSession('${session.sessionKey}')">
+                        📥 Download Session
+                    </button>
+                    <button class="btn btn-small btn-danger" onclick="deleteSession('${session.sessionKey}', ${index})">
+                        🗑️ Delete
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Update statistics
+        function updateStats() {
+            const totalSessions = allSessions.length;
+            let totalPhotos = 0;
+            let storageSize = 0;
+            
+            allSessions.forEach(session => {
+                totalPhotos += session.photoCount || 0;
+                
+                // Estimate storage (rough calculation)
+                try {
+                    const sessionData = localStorage.getItem(session.sessionKey);
+                    if (sessionData) {
+                        storageSize += sessionData.length;
+                    }
+                } catch (e) {
+                    // Ignore errors
+                }
+            });
+            
+            document.getElementById('totalSessions').textContent = totalSessions;
+            document.getElementById('totalPhotos').textContent = totalPhotos;
+            document.getElementById('storageUsed').textContent = (storageSize / (1024 * 1024)).toFixed(1) + 'MB';
+        }
+
+        // View full-size photo in modal
+        function viewPhoto(photoSrc) {
+            document.getElementById('modalPhoto').src = photoSrc;
+            document.getElementById('photoModal').style.display = 'block';
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('photoModal').style.display = 'none';
+        }
+
+        // Download all photos from a session
+        function downloadSession(sessionKey) {
+            try {
+                const sessionData = localStorage.getItem(sessionKey);
+                if (!sessionData) {
+                    alert('Session not found');
+                    return;
+                }
+                
+                const data = JSON.parse(sessionData);
+                const photos = data.photos || [];
+                const sessionDate = new Date(data.timestamp).toISOString().slice(0, 10);
+                
+                photos.forEach((photo, index) => {
+                    const link = document.createElement('a');
+                    link.href = photo;
+                    link.download = `Brittany_Birthday_${sessionDate}_Photo_${index + 1}.png`;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+                
+                console.log(`Downloaded ${photos.length} photos from session`);
+                
+            } catch (error) {
+                console.error('Error downloading session:', error);
+                alert('Error downloading photos');
+            }
+        }
+
+        // Download all photos from all sessions
+        function downloadAllPhotos() {
+            if (allSessions.length === 0) {
+                alert('No photos to download');
+                return;
+            }
+            
+            if (!confirm(`Download all photos from ${allSessions.length} sessions?`)) {
+                return;
+            }
+            
+            let totalDownloaded = 0;
+            
+            allSessions.forEach((session, sessionIndex) => {
+                try {
+                    const sessionData = localStorage.getItem(session.sessionKey);
+                    if (sessionData) {
+                        const data = JSON.parse(sessionData);
+                        const photos = data.photos || [];
+                        const sessionDate = new Date(data.timestamp).toISOString().slice(0, 10);
+                        const sessionTime = new Date(data.timestamp).toISOString().slice(11, 16).replace(':', '');
+                        
+                        photos.forEach((photo, photoIndex) => {
+                            setTimeout(() => {
+                                const link = document.createElement('a');
+                                link.href = photo;
+                                link.download = `Brittany_Birthday_${sessionDate}_${sessionTime}_Photo_${photoIndex + 1}.png`;
+                                link.style.display = 'none';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                totalDownloaded++;
+                            }, (sessionIndex * 3 + photoIndex) * 200); // Stagger downloads
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error downloading session:', error);
+                }
+            });
+            
+            setTimeout(() => {
+                alert(`Started downloading ${totalDownloaded} photos`);
+            }, 1000);
+        }
+
+        // Delete a session
+        function deleteSession(sessionKey, index) {
+            if (!confirm('Delete this session and all its photos?')) {
+                return;
+            }
+            
+            try {
+                // Remove from localStorage
+                localStorage.removeItem(sessionKey);
+                
+                // Remove from sessions list
+                allSessions.splice(index, 1);
+                localStorage.setItem('admin_photo_sessions', JSON.stringify(allSessions));
+                
+                // Refresh display
+                displaySessions();
+                updateStats();
+                
+                console.log('Session deleted:', sessionKey);
+                
+            } catch (error) {
+                console.error('Error deleting session:', error);
+                alert('Error deleting session');
+            }
+        }
+
+        // Clear all data
+        function clearAllData() {
+            if (!confirm('Clear ALL photo data? This cannot be undone!')) {
+                return;
+            }
+            
+            if (!confirm('Are you absolutely sure? All photos will be permanently deleted!')) {
+                return;
+            }
+            
+            try {
+                // Remove all session data
+                allSessions.forEach(session => {
+                    localStorage.removeItem(session.sessionKey);
+                });
+                
+                // Clear sessions list
+                localStorage.removeItem('admin_photo_sessions');
+                
+                // Reset
+                allSessions = [];
+                displaySessions();
+                updateStats();
+                
+                alert('All photo data cleared');
+                
+            } catch (error) {
+                console.error('Error clearing data:', error);
+                alert('Error clearing data');
+            }
+        }
+
+        // Refresh data
+        function refreshData() {
+            loadSessions();
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('photoModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Initialize page
+        window.addEventListener('load', () => {
+            loadSessions();
+        });
+    </script>
+</body>
+</html>
