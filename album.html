@@ -38,6 +38,7 @@
         .photo-overlay {
             position: absolute;
             overflow: hidden;
+            background: rgba(255, 255, 255, 0.1); /* Slight background for debugging */
         }
 
         /* Top photo - positioned in first white rectangle */
@@ -71,8 +72,24 @@
             display: block;
         }
 
+        .photo-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #F5DEB3, #DEB887);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #654321;
+            font-size: 0.8em;
+            text-align: center;
+            padding: 5px;
+            line-height: 1.2;
+            border: 1px dashed #654321;
+        }
+
         .buttons-container {
             display: flex;
+            gap: 15px;
             justify-content: center;
             margin-bottom: 15px;
         }
@@ -104,16 +121,12 @@
             transform: translateY(0);
         }
 
-        .instructions {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #654321;
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            color: #654321;
-            font-size: 1em;
-            line-height: 1.6;
-            max-width: 500px;
+        .action-button.secondary {
+            background: linear-gradient(135deg, #4169E1, #1E3A8A);
+        }
+
+        .action-button.secondary:hover {
+            background: linear-gradient(135deg, #6495ED, #4169E1);
         }
 
         .status-message {
@@ -138,6 +151,20 @@
             border: 2px solid #f44336;
         }
 
+        .debug-info {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.8em;
+            margin-top: 10px;
+            max-width: 500px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
         /* Mobile responsive */
         @media (max-width: 768px) {
             .album-container {
@@ -149,186 +176,289 @@
                 font-size: 1em;
             }
         }
+
+        @media (max-width: 480px) {
+            .album-container {
+                max-width: 220px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="status-message" id="statusMessage"></div>
 
     <div class="album-container" id="albumContainer">
-        <div class="photo-overlay photo-1" id="photoSlot1"></div>
-        <div class="photo-overlay photo-2" id="photoSlot2"></div>
-        <div class="photo-overlay photo-3" id="photoSlot3"></div>
+        <div class="photo-overlay photo-1" id="photoSlot1">
+            <div class="photo-placeholder">Loading Photo 1...</div>
+        </div>
+        <div class="photo-overlay photo-2" id="photoSlot2">
+            <div class="photo-placeholder">Loading Photo 2...</div>
+        </div>
+        <div class="photo-overlay photo-3" id="photoSlot3">
+            <div class="photo-placeholder">Loading Photo 3...</div>
+        </div>
     </div>
 
     <div class="buttons-container">
         <button class="action-button" onclick="downloadAlbum()">
             📥 Download Album
         </button>
+        <button class="action-button secondary" onclick="toggleDebug()">
+            🔍 Debug
+        </button>
     </div>
+
+    <div class="debug-info" id="debugInfo"></div>
 
     <script>
         let photoData = [];
+        let debugMode = false;
+
+        // Debug logging
+        function debugLog(message, data = null) {
+            console.log(message, data);
+            if (debugMode) {
+                const debugDiv = document.getElementById('debugInfo');
+                const timestamp = new Date().toLocaleTimeString();
+                debugDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+                if (data) {
+                    debugDiv.innerHTML += `<div style="margin-left: 20px; color: #ccc;">${JSON.stringify(data, null, 2).substring(0, 200)}...</div>`;
+                }
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            }
+        }
+
+        function toggleDebug() {
+            debugMode = !debugMode;
+            const debugDiv = document.getElementById('debugInfo');
+            debugDiv.style.display = debugMode ? 'block' : 'none';
+            if (debugMode) {
+                debugDiv.innerHTML = '<div><strong>Debug Mode Enabled</strong></div>';
+                loadPhotos(); // Reload with debug
+            }
+        }
 
         // Get photos from URL session parameter
         function loadPhotos() {
-            console.log('🔍 Loading photos for specific session...');
+            debugLog('🔍 Starting photo loading process...');
             
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('session');
             
-            console.log(`🎯 Session ID from URL: ${sessionId}`);
+            debugLog(`🎯 Session ID from URL: ${sessionId}`);
             
             if (sessionId) {
-                console.log(`🔍 Looking for session: ${sessionId}`);
+                debugLog(`🔍 Looking for specific session: ${sessionId}`);
                 
-                // Try to find this specific session in localStorage
+                // Try localStorage first
                 try {
                     const sessionData = localStorage.getItem(sessionId);
-                    console.log(`📂 localStorage data for ${sessionId}:`, sessionData ? 'Found' : 'Not found');
+                    debugLog(`📂 localStorage lookup for ${sessionId}:`, sessionData ? 'Found data' : 'No data');
                     
                     if (sessionData) {
                         const parsed = JSON.parse(sessionData);
-                        console.log(`📋 Parsed data:`, parsed);
+                        debugLog(`📋 Parsed localStorage data:`, {
+                            hasPhotos: !!parsed.photos,
+                            photoCount: parsed.photos ? parsed.photos.length : 0,
+                            filter: parsed.filter,
+                            timestamp: parsed.timestamp
+                        });
                         
                         if (parsed.photos && parsed.photos.length > 0) {
-                            console.log(`✅ Found ${parsed.photos.length} photos for session ${sessionId} in localStorage`);
+                            debugLog(`✅ Found ${parsed.photos.length} photos in localStorage`);
                             photoData = parsed.photos;
-                            
-                            // Debug: Show first photo data snippet
-                            console.log(`📸 First photo preview: ${parsed.photos[0] ? parsed.photos[0].substring(0, 50) + '...' : 'null'}`);
+                            displayPhotos();
+                            showStatus(`✅ Loaded ${parsed.photos.length} photos from session!`, 'success');
                             return true;
-                        } else {
-                            console.log('❌ Photos array is empty or missing');
                         }
                     }
                 } catch (e) {
-                    console.log('❌ localStorage lookup failed:', e);
+                    debugLog('❌ localStorage error:', e.message);
                 }
                 
                 // Try sessionStorage
                 try {
                     const sessionData = sessionStorage.getItem(sessionId);
-                    console.log(`📂 sessionStorage data for ${sessionId}:`, sessionData ? 'Found' : 'Not found');
+                    debugLog(`📂 sessionStorage lookup for ${sessionId}:`, sessionData ? 'Found data' : 'No data');
                     
                     if (sessionData) {
                         const parsed = JSON.parse(sessionData);
-                        console.log(`📋 Parsed sessionStorage data:`, parsed);
+                        debugLog(`📋 Parsed sessionStorage data:`, {
+                            hasPhotos: !!parsed.photos,
+                            photoCount: parsed.photos ? parsed.photos.length : 0,
+                            filter: parsed.filter,
+                            timestamp: parsed.timestamp
+                        });
                         
                         if (parsed.photos && parsed.photos.length > 0) {
-                            console.log(`✅ Found ${parsed.photos.length} photos for session ${sessionId} in sessionStorage`);
+                            debugLog(`✅ Found ${parsed.photos.length} photos in sessionStorage`);
                             photoData = parsed.photos;
-                            
-                            // Debug: Show first photo data snippet
-                            console.log(`📸 First photo preview: ${parsed.photos[0] ? parsed.photos[0].substring(0, 50) + '...' : 'null'}`);
+                            displayPhotos();
+                            showStatus(`✅ Loaded ${parsed.photos.length} photos from session!`, 'success');
                             return true;
-                        } else {
-                            console.log('❌ Photos array is empty or missing in sessionStorage');
                         }
                     }
                 } catch (e) {
-                    console.log('❌ sessionStorage lookup failed:', e);
+                    debugLog('❌ sessionStorage error:', e.message);
                 }
                 
-                console.log(`❌ Session ${sessionId} not found in any storage`);
-                
-                // Debug: Show what keys ARE available
-                console.log('🔍 Available localStorage keys:', Object.keys(localStorage));
-                console.log('🔍 Available sessionStorage keys:', Object.keys(sessionStorage));
-                
+                debugLog(`❌ Session ${sessionId} not found in any storage`);
             } else {
-                console.log('⚠️ No session parameter in URL - searching for any recent photos...');
-                
-                // Fallback: Look for any recent photos if no session specified
-                return loadAnyRecentPhotos();
+                debugLog('⚠️ No session parameter in URL - searching for recent photos...');
             }
             
-            return false;
+            // Fallback: Look for any recent photos
+            return loadAnyRecentPhotos();
         }
 
         // Fallback function to find any recent photos
         function loadAnyRecentPhotos() {
-            console.log('🔄 Searching for any recent photos...');
+            debugLog('🔄 Searching for any recent photos...');
             
             // Check localStorage for any session keys
             try {
                 const allKeys = Object.keys(localStorage);
                 const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
                 
-                console.log(`📂 Found ${sessionKeys.length} session keys in localStorage:`, sessionKeys);
+                debugLog(`📂 Found ${sessionKeys.length} session keys in localStorage:`, sessionKeys);
                 
-                // Sort by timestamp (newest first)
-                sessionKeys.sort((a, b) => {
-                    const timestampA = parseInt(a.split('_')[1]) || 0;
-                    const timestampB = parseInt(b.split('_')[1]) || 0;
-                    return timestampB - timestampA;
-                });
-                
-                console.log(`📅 Sorted session keys (newest first):`, sessionKeys);
-                
-                // Try the most recent session
-                for (const key of sessionKeys) {
-                    try {
-                        const data = localStorage.getItem(key);
-                        if (data) {
-                            const parsed = JSON.parse(data);
-                            console.log(`📋 Checking session ${key}:`, parsed);
-                            
-                            if (parsed.photos && parsed.photos.length > 0) {
-                                console.log(`✅ Using fallback photos from session: ${key} (${parsed.photos.length} photos)`);
-                                photoData = parsed.photos;
+                if (sessionKeys.length === 0) {
+                    debugLog('❌ No session keys found in localStorage');
+                } else {
+                    // Sort by timestamp (newest first)
+                    sessionKeys.sort((a, b) => {
+                        const timestampA = parseInt(a.split('_')[1]) || 0;
+                        const timestampB = parseInt(b.split('_')[1]) || 0;
+                        return timestampB - timestampA;
+                    });
+                    
+                    debugLog(`📅 Sorted session keys (newest first):`, sessionKeys);
+                    
+                    // Try the most recent sessions
+                    for (const key of sessionKeys) {
+                        try {
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                const parsed = JSON.parse(data);
+                                debugLog(`📋 Checking session ${key}:`, {
+                                    hasPhotos: !!parsed.photos,
+                                    photoCount: parsed.photos ? parsed.photos.length : 0,
+                                    timestamp: new Date(parsed.timestamp || 0).toLocaleString()
+                                });
                                 
-                                // Debug: Show first photo data snippet
-                                console.log(`📸 First fallback photo preview: ${parsed.photos[0] ? parsed.photos[0].substring(0, 50) + '...' : 'null'}`);
-                                return true;
+                                if (parsed.photos && parsed.photos.length > 0) {
+                                    debugLog(`✅ Using fallback photos from session: ${key}`);
+                                    photoData = parsed.photos;
+                                    displayPhotos();
+                                    showStatus(`✅ Found ${parsed.photos.length} photos from recent session!`, 'success');
+                                    return true;
+                                }
                             }
+                        } catch (e) {
+                            debugLog(`❌ Error parsing session ${key}:`, e.message);
                         }
-                    } catch (e) {
-                        console.log(`❌ Error parsing session ${key}:`, e);
                     }
                 }
             } catch (e) {
-                console.log('❌ localStorage search failed:', e);
+                debugLog('❌ localStorage search failed:', e.message);
             }
             
-            // Check sessionStorage as final fallback
+            // Check sessionStorage as fallback
             try {
                 const allKeys = Object.keys(sessionStorage);
                 const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
                 
-                console.log(`📂 Found ${sessionKeys.length} session keys in sessionStorage:`, sessionKeys);
+                debugLog(`📂 Found ${sessionKeys.length} session keys in sessionStorage:`, sessionKeys);
                 
-                sessionKeys.sort((a, b) => {
-                    const timestampA = parseInt(a.split('_')[1]) || 0;
-                    const timestampB = parseInt(b.split('_')[1]) || 0;
-                    return timestampB - timestampA;
-                });
-                
-                for (const key of sessionKeys) {
-                    try {
-                        const data = sessionStorage.getItem(key);
-                        if (data) {
-                            const parsed = JSON.parse(data);
-                            console.log(`📋 Checking sessionStorage session ${key}:`, parsed);
-                            
-                            if (parsed.photos && parsed.photos.length > 0) {
-                                console.log(`✅ Using fallback photos from sessionStorage: ${key} (${parsed.photos.length} photos)`);
-                                photoData = parsed.photos;
+                if (sessionKeys.length > 0) {
+                    sessionKeys.sort((a, b) => {
+                        const timestampA = parseInt(a.split('_')[1]) || 0;
+                        const timestampB = parseInt(b.split('_')[1]) || 0;
+                        return timestampB - timestampA;
+                    });
+                    
+                    for (const key of sessionKeys) {
+                        try {
+                            const data = sessionStorage.getItem(key);
+                            if (data) {
+                                const parsed = JSON.parse(data);
+                                debugLog(`📋 Checking sessionStorage session ${key}:`, {
+                                    hasPhotos: !!parsed.photos,
+                                    photoCount: parsed.photos ? parsed.photos.length : 0
+                                });
                                 
-                                // Debug: Show first photo data snippet
-                                console.log(`📸 First sessionStorage photo preview: ${parsed.photos[0] ? parsed.photos[0].substring(0, 50) + '...' : 'null'}`);
-                                return true;
+                                if (parsed.photos && parsed.photos.length > 0) {
+                                    debugLog(`✅ Using fallback photos from sessionStorage: ${key}`);
+                                    photoData = parsed.photos;
+                                    displayPhotos();
+                                    showStatus(`✅ Found ${parsed.photos.length} photos from sessionStorage!`, 'success');
+                                    return true;
+                                }
                             }
+                        } catch (e) {
+                            debugLog(`❌ Error parsing sessionStorage session ${key}:`, e.message);
                         }
-                    } catch (e) {
-                        console.log(`❌ Error parsing sessionStorage session ${key}:`, e);
                     }
                 }
             } catch (e) {
-                console.log('❌ sessionStorage search failed:', e);
+                debugLog('❌ sessionStorage search failed:', e.message);
             }
             
-            console.log('❌ No photos found anywhere');
+            // No photos found anywhere
+            debugLog('❌ No photos found anywhere');
+            displayPlaceholders();
+            showStatus('⚠️ No photos found - showing sample album', 'error');
             return false;
+        }
+
+        // Display actual photos in the overlay positions
+        function displayPhotos() {
+            debugLog('📸 Displaying actual photos in overlay positions...');
+            
+            for (let i = 0; i < 3; i++) {
+                const slot = document.getElementById(`photoSlot${i + 1}`);
+                
+                if (photoData[i]) {
+                    debugLog(`📷 Creating image element for photo ${i + 1}`);
+                    const img = document.createElement('img');
+                    img.className = 'album-photo';
+                    img.alt = `Photo ${i + 1}`;
+                    img.src = photoData[i];
+                    
+                    // Add load handlers for debugging
+                    img.onload = () => {
+                        debugLog(`✅ Photo ${i + 1} loaded successfully and displayed in overlay`);
+                    };
+                    img.onerror = () => {
+                        debugLog(`❌ Photo ${i + 1} failed to load`);
+                        slot.innerHTML = `<div class="photo-placeholder">Photo ${i + 1}<br>Failed to Load</div>`;
+                    };
+                    
+                    slot.innerHTML = '';
+                    slot.appendChild(img);
+                } else {
+                    debugLog(`📝 No data for photo ${i + 1}, showing placeholder`);
+                    slot.innerHTML = `<div class="photo-placeholder">Photo ${i + 1}<br>Not Available</div>`;
+                }
+            }
+        }
+
+        // Create placeholder images when no photos are found
+        function displayPlaceholders() {
+            debugLog('📝 Displaying placeholder images in overlays...');
+            
+            for (let i = 0; i < 3; i++) {
+                const slot = document.getElementById(`photoSlot${i + 1}`);
+                const placeholder = createPlaceholder(i + 1);
+                
+                const img = document.createElement('img');
+                img.className = 'album-photo';
+                img.alt = `Placeholder ${i + 1}`;
+                img.src = placeholder;
+                
+                slot.innerHTML = '';
+                slot.appendChild(img);
+            }
         }
 
         // Create placeholder image
@@ -357,38 +487,6 @@
             return canvas.toDataURL();
         }
 
-        // Display photos in album
-        function displayAlbum() {
-            console.log('📸 Displaying album...');
-            
-            const hasPhotos = loadPhotos();
-            
-            // Display each photo slot
-            for (let i = 0; i < 3; i++) {
-                const slot = document.getElementById(`photoSlot${i + 1}`);
-                const img = document.createElement('img');
-                img.className = 'album-photo';
-                img.alt = `Photo ${i + 1}`;
-                
-                if (hasPhotos && photoData[i]) {
-                    img.src = photoData[i];
-                    console.log(`📷 Loaded photo ${i + 1} from storage`);
-                } else {
-                    img.src = createPlaceholder(i + 1);
-                    console.log(`📝 Created placeholder for slot ${i + 1}`);
-                }
-                
-                slot.innerHTML = '';
-                slot.appendChild(img);
-            }
-            
-            if (hasPhotos) {
-                showStatus('✅ Your photos loaded successfully!', 'success');
-            } else {
-                showStatus('⚠️ No photos found - showing sample album', 'error');
-            }
-        }
-
         // Show status message
         function showStatus(message, type) {
             const statusDiv = document.getElementById('statusMessage');
@@ -398,27 +496,25 @@
             
             setTimeout(() => {
                 statusDiv.style.display = 'none';
-            }, 4000);
+            }, 5000);
         }
 
-        // Download the album as an image
+        // Download the album as an image using html2canvas
         async function downloadAlbum() {
-            console.log('💾 Starting album download...');
+            debugLog('💾 Starting album download with album.png overlay...');
             
             try {
                 const albumContainer = document.getElementById('albumContainer');
                 
-                // Use html2canvas library (loaded from CDN)
-                if (typeof html2canvas === 'undefined') {
-                    // Fallback: Create canvas manually
-                    await captureAlbumManually();
-                } else {
-                    // Use html2canvas for better quality
+                // Use html2canvas if available for better quality
+                if (typeof html2canvas !== 'undefined') {
+                    debugLog('✅ Using html2canvas for high-quality capture');
                     const canvas = await html2canvas(albumContainer, {
                         allowTaint: true,
                         useCORS: true,
                         scale: 2,
-                        backgroundColor: null
+                        backgroundColor: null,
+                        logging: debugMode
                     });
                     
                     // Download the image
@@ -429,79 +525,151 @@
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+                    
+                    showStatus('📥 Album with overlay downloaded successfully!', 'success');
+                    debugLog('✅ Album download completed with overlay');
+                } else {
+                    debugLog('⚠️ html2canvas not available, using manual capture');
+                    await captureAlbumManually();
                 }
                 
-                showStatus('📥 Album downloaded successfully!', 'success');
-                console.log('✅ Album download completed');
-                
             } catch (error) {
-                console.error('❌ Download failed:', error);
-                showStatus('❌ Download failed. Try long-pressing the album to save.', 'error');
+                debugLog('❌ Download failed:', error.message);
+                showStatus('❌ Download failed. Please try again.', 'error');
             }
         }
 
-        // Manual canvas capture (fallback)
+        // Manual canvas capture (fallback method)
         async function captureAlbumManually() {
+            debugLog('🎨 Manual album capture (fallback method)');
+            
             const albumContainer = document.getElementById('albumContainer');
             const rect = albumContainer.getBoundingClientRect();
             
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Set canvas size
-            canvas.width = rect.width * 2;
-            canvas.height = rect.height * 2;
-            ctx.scale(2, 2);
+            // Set canvas size with higher resolution
+            const scale = 2;
+            canvas.width = rect.width * scale;
+            canvas.height = rect.height * scale;
+            ctx.scale(scale, scale);
             
-            // Draw background (album.png)
-            const albumBg = new Image();
-            albumBg.onload = function() {
-                ctx.drawImage(albumBg, 0, 0, rect.width, rect.height);
+            try {
+                // First, try to draw the album.png background
+                const albumBg = new Image();
+                albumBg.crossOrigin = 'anonymous';
                 
-                // Draw photos
-                let photosDrawn = 0;
-                for (let i = 0; i < 3; i++) {
-                    const img = document.getElementById(`photoSlot${i + 1}`).querySelector('img');
-                    if (img) {
-                        const photoImg = new Image();
-                        photoImg.onload = function() {
-                            const slot = document.getElementById(`photoSlot${i + 1}`);
-                            const slotRect = slot.getBoundingClientRect();
-                            const x = slotRect.left - rect.left;
-                            const y = slotRect.top - rect.top;
-                            
-                            ctx.drawImage(photoImg, x, y, slotRect.width, slotRect.height);
-                            photosDrawn++;
-                            
-                            // When all photos are drawn, download
-                            if (photosDrawn === 3) {
-                                const link = document.createElement('a');
-                                link.download = 'Brittany_22nd_Birthday_Album.png';
-                                link.href = canvas.toDataURL('image/png');
-                                link.style.display = 'none';
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                            }
-                        };
-                        photoImg.src = img.src;
-                    }
-                }
-            };
-            albumBg.src = 'album.png';
+                albumBg.onload = function() {
+                    debugLog('✅ Album background loaded, drawing...');
+                    ctx.drawImage(albumBg, 0, 0, rect.width, rect.height);
+                    
+                    // Then draw photos on top
+                    drawPhotosOnCanvas(ctx, rect);
+                };
+                
+                albumBg.onerror = function() {
+                    debugLog('❌ Album background failed to load, drawing without it');
+                    // Draw a simple background instead
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(0, 0, rect.width, rect.height);
+                    
+                    // Draw border
+                    ctx.strokeStyle = '#654321';
+                    ctx.lineWidth = 8;
+                    ctx.strokeRect(4, 4, rect.width - 8, rect.height - 8);
+                    
+                    // Draw photos
+                    drawPhotosOnCanvas(ctx, rect);
+                };
+                
+                albumBg.src = 'album.png';
+                
+            } catch (error) {
+                debugLog('❌ Manual capture failed:', error.message);
+                showStatus('❌ Manual capture failed', 'error');
+            }
         }
 
-        // Share/save instructions - REMOVED
-        // function shareAlbum() removed
+        // Helper function to draw photos on canvas
+        function drawPhotosOnCanvas(ctx, rect) {
+            debugLog('🖼️ Drawing photos on canvas...');
+            
+            let photosDrawn = 0;
+            const totalPhotos = 3;
+            
+            for (let i = 0; i < totalPhotos; i++) {
+                const img = document.getElementById(`photoSlot${i + 1}`).querySelector('.album-photo');
+                
+                if (img && img.src && !img.src.includes('placeholder')) {
+                    const photoImg = new Image();
+                    photoImg.crossOrigin = 'anonymous';
+                    
+                    photoImg.onload = function() {
+                        const slot = document.getElementById(`photoSlot${i + 1}`);
+                        const slotRect = slot.getBoundingClientRect();
+                        const containerRect = document.getElementById('albumContainer').getBoundingClientRect();
+                        
+                        const x = slotRect.left - containerRect.left;
+                        const y = slotRect.top - containerRect.top;
+                        
+                        ctx.drawImage(photoImg, x, y, slotRect.width, slotRect.height);
+                        photosDrawn++;
+                        
+                        debugLog(`✅ Photo ${i + 1} drawn on canvas`);
+                        
+                        // When all photos are drawn, download
+                        if (photosDrawn === totalPhotos || photosDrawn === photoData.filter(p => p).length) {
+                            finishDownload(ctx.canvas);
+                        }
+                    };
+                    
+                    photoImg.onerror = function() {
+                        debugLog(`❌ Failed to load photo ${i + 1} for canvas`);
+                        photosDrawn++;
+                        
+                        if (photosDrawn === totalPhotos || photosDrawn === photoData.filter(p => p).length) {
+                            finishDownload(ctx.canvas);
+                        }
+                    };
+                    
+                    photoImg.src = img.src;
+                } else {
+                    photosDrawn++;
+                    debugLog(`⏭️ Skipping photo ${i + 1} (no valid image)`);
+                }
+            }
+            
+            // If no photos to draw, download immediately
+            if (photoData.filter(p => p).length === 0) {
+                finishDownload(ctx.canvas);
+            }
+        }
+
+        // Finish the download process
+        function finishDownload(canvas) {
+            debugLog('🏁 Finishing download...');
+            
+            const link = document.createElement('a');
+            link.download = 'Brittany_22nd_Birthday_Album.png';
+            link.href = canvas.toDataURL('image/png');
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showStatus('📥 Album downloaded successfully!', 'success');
+            debugLog('✅ Download completed');
+        }
 
         // Initialize page
         window.addEventListener('load', () => {
-            console.log('🎉 Album page loaded');
-            displayAlbum();
+            debugLog('🎉 Album page loaded - ready to display photos with album.png overlay');
+            loadPhotos();
         });
     </script>
     
-    <!-- Optional: Load html2canvas for better capture quality -->
+    <!-- html2canvas for better capture quality -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
