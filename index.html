@@ -180,7 +180,7 @@
             font-family: 'Georgia', serif;
         }
 
-        /* Captured message - Mexican Western themed */
+        /* Captured message - Mexican Western themed - MAIN TEXT ONLY */
         .captured-message {
             position: absolute;
             top: 50%;
@@ -204,15 +204,6 @@
             display: none;
             animation: captureFlash 1.5s ease-out;
             letter-spacing: 2px;
-        }
-
-        .captured-message::after {
-            content: 'Captured, Partner!';
-            display: block;
-            font-size: 0.6em;
-            margin-top: 8px;
-            font-style: italic;
-            opacity: 0.9;
         }
 
         @keyframes captureFlash {
@@ -641,26 +632,30 @@
             console.log('Successfully returned to start page - complete reset done');
         }
 
-        // Download photos automatically for the iPad operator
+        // Download photos automatically for the iPad operator - NO PERMISSION REQUIRED
         function downloadPhotosForOperator() {
-            console.log('Creating download for operator...');
+            console.log('Creating automatic downloads...');
             
             capturedPhotos.forEach((photo, index) => {
                 if (photo) {
+                    // Create download without user interaction
                     const link = document.createElement('a');
                     link.download = `Brittany_Birthday_Photo_${index + 1}_${Date.now()}.png`;
                     link.href = photo;
                     link.style.display = 'none';
+                    // Force download without permission
+                    link.setAttribute('download', link.download);
                     document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
                     
-                    // Small delay between downloads
-                    setTimeout(() => {}, 100);
+                    // Trigger download immediately
+                    setTimeout(() => {
+                        link.click();
+                        document.body.removeChild(link);
+                    }, index * 200); // Stagger downloads slightly
                 }
             });
             
-            console.log('Auto-download completed');
+            console.log('Automatic downloads initiated');
         }
 
         // Clear old photo sessions to prevent localStorage from getting full
@@ -753,7 +748,7 @@
             }
         }
 
-        // Countdown function - no sound effect during countdown
+        // Countdown function - IMMEDIATE CAPTURE AFTER SMILE
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -770,7 +765,7 @@
             
             countdownNumber.textContent = 'SMILE';
             countdownText.textContent = 'Say "Howdy!"';
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // NO DELAY - IMMEDIATE CAPTURE
             
             countdownContainer.classList.add('hidden');
         }
