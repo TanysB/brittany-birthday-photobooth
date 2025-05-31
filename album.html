@@ -15,35 +15,23 @@
             font-family: 'Georgia', serif;
             background: linear-gradient(135deg, #F5DEB3, #DEB887);
             min-height: 100vh;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
         }
 
-        .page-title {
-            text-align: center;
-            color: #654321;
-            font-size: 2em;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
         .album-container {
             position: relative;
             width: 100%;
-            max-width: 400px;
+            max-width: 280px;
             background-image: url('album.png');
             background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
             aspect-ratio: 1/2.5;
-            margin-bottom: 30px;
-            border: 3px solid #654321;
-            border-radius: 15px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            margin-bottom: 25px;
         }
 
         /* Photo overlays positioned exactly in the white rectangles of album.png */
@@ -85,15 +73,13 @@
 
         .buttons-container {
             display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .action-button {
-            background: linear-gradient(135deg, #654321, #4a2c1a);
-            color: #F5DEB3;
+            background: linear-gradient(135deg, #228B22, #006400);
+            color: white;
             border: none;
             padding: 15px 30px;
             border-radius: 25px;
@@ -106,25 +92,16 @@
             text-decoration: none;
             display: inline-block;
             text-align: center;
-            min-width: 180px;
         }
 
         .action-button:hover {
-            background: linear-gradient(135deg, #7d5436, #5a3422);
+            background: linear-gradient(135deg, #32CD32, #228B22);
             transform: translateY(-2px);
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
         }
 
         .action-button:active {
             transform: translateY(0);
-        }
-
-        .download-btn {
-            background: linear-gradient(135deg, #228B22, #006400);
-        }
-
-        .download-btn:hover {
-            background: linear-gradient(135deg, #32CD32, #228B22);
         }
 
         .instructions {
@@ -163,32 +140,18 @@
 
         /* Mobile responsive */
         @media (max-width: 768px) {
-            .page-title {
-                font-size: 1.5em;
-            }
-            
             .album-container {
-                max-width: 350px;
+                max-width: 250px;
             }
             
             .action-button {
                 padding: 12px 25px;
                 font-size: 1em;
-                min-width: 150px;
-            }
-            
-            .buttons-container {
-                flex-direction: column;
-                align-items: center;
             }
         }
     </style>
 </head>
 <body>
-    <div class="page-title">
-        🤠 Your Photo Album 📸
-    </div>
-
     <div class="status-message" id="statusMessage"></div>
 
     <div class="album-container" id="albumContainer">
@@ -198,19 +161,9 @@
     </div>
 
     <div class="buttons-container">
-        <button class="action-button download-btn" onclick="downloadAlbum()">
+        <button class="action-button" onclick="downloadAlbum()">
             📥 Download Album
         </button>
-        <button class="action-button" onclick="shareAlbum()">
-            📱 Save to Photos
-        </button>
-    </div>
-
-    <div class="instructions">
-        <strong>💡 How to save:</strong><br>
-        • <strong>Download Album:</strong> Downloads the album image to your device<br>
-        • <strong>Save to Photos:</strong> Instructions for screenshotting<br>
-        • <strong>Long press:</strong> On mobile, long press the album to save image
     </div>
 
     <script>
@@ -456,28 +409,8 @@
             albumBg.src = 'album.png';
         }
 
-        // Share/save instructions
-        function shareAlbum() {
-            const instructions = `
-📱 To save this album to your phone:
-
-iPhone/iPad:
-• Long press on the album image above
-• Select "Save to Photos" or "Add to Photos"
-
-Android:
-• Long press on the album image above  
-• Select "Download image" or "Save image"
-
-Computer:
-• Right-click on the album image
-• Select "Save image as..."
-
-The album will be saved with your 3 photos positioned exactly as shown!
-            `;
-            
-            alert(instructions);
-        }
+        // Share/save instructions - REMOVED
+        // function shareAlbum() removed
 
         // Initialize page
         window.addEventListener('load', () => {
