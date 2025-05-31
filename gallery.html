@@ -307,19 +307,23 @@
     <script>
         let photoData = [];
 
-        // Get photo data from URL parameters or localStorage - TABLET/PHONE COMPATIBLE
+        // Get photo data from URL parameters or localStorage - ENHANCED DEBUGGING
         function getPhotoData() {
+            console.log('🔍 Starting photo data retrieval...');
+            console.log('🔗 Current URL:', window.location.href);
+            
             const urlParams = new URLSearchParams(window.location.search);
+            console.log('📋 URL Parameters:', Object.fromEntries(urlParams));
             
             // Method 1: Direct photo encoding (tablet → phone via QR)
             const photoParam = urlParams.get('photos');
             if (photoParam) {
                 try {
                     photoData = JSON.parse(decodeURIComponent(photoParam));
-                    console.log('Photos loaded directly from QR code');
+                    console.log('✅ Photos loaded directly from QR code:', photoData.length, 'photos');
                     return;
                 } catch (e) {
-                    console.log('Could not parse direct photo data:', e);
+                    console.log('❌ Could not parse direct photo data:', e);
                 }
             }
             
@@ -329,37 +333,92 @@
                 try {
                     const storedPhotos = localStorage.getItem(photoId);
                     if (storedPhotos) {
-                        photoData = JSON.parse(storedPhotos);
-                        console.log('Photos loaded from photo ID:', photoId);
+                        const parsed = JSON.parse(storedPhotos);
+                        photoData = parsed.photos || parsed; // Handle both formats
+                        console.log('✅ Photos loaded from photo ID:', photoId, '-', photoData.length, 'photos');
                         return;
                     } else {
-                        console.log('No photos found for ID:', photoId);
-                        // Show helpful message for users scanning from different device
+                        console.log('❌ No photos found for ID:', photoId);
                         showCrossDeviceMessage(photoId);
                         return;
                     }
                 } catch (e) {
-                    console.log('Could not parse photo ID data:', e);
+                    console.log('❌ Could not parse photo ID data:', e);
                 }
             }
             
-            // Method 3: Legacy session system
+            // Method 3: Session system (primary method)
             const sessionId = urlParams.get('session');
             if (sessionId) {
+                console.log('🔑 Looking for session:', sessionId);
                 try {
                     const storedPhotos = localStorage.getItem(sessionId);
                     if (storedPhotos) {
-                        photoData = JSON.parse(storedPhotos);
-                        console.log('Photos loaded from session:', sessionId);
+                        console.log('📦 Found stored data, parsing...');
+                        const sessionData = JSON.parse(storedPhotos);
+                        
+                        // Handle both old and new data formats
+                        if (Array.isArray(sessionData)) {
+                            photoData = sessionData; // Old format
+                        } else if (sessionData.photos) {
+                            photoData = sessionData.photos; // New format
+                        } else {
+                            photoData = []; 
+                        }
+                        
+                        console.log('✅ Photos loaded from session:', sessionId, '-', photoData.length, 'photos');
+                        console.log('📸 Session data:', {
+                            photoCount: photoData.length,
+                            filter: sessionData.filter || 'unknown',
+                            timestamp: sessionData.timestamp || 'unknown'
+                        });
+                        return;
+                    } else {
+                        console.log('❌ No data found for session:', sessionId);
+                        console.log('🔍 Available localStorage keys:', Object.keys(localStorage));
+                        showSessionNotFound(sessionId);
                         return;
                     }
                 } catch (e) {
-                    console.log('Could not parse session data:', e);
+                    console.log('❌ Could not parse session data:', e);
+                    showSessionNotFound(sessionId);
+                    return;
                 }
             }
 
+            // No valid parameters found
+            console.log('❌ No valid URL parameters found');
+            console.log('🔍 Available URL params:', [...urlParams.keys()]);
+            console.log('📦 Available localStorage:', Object.keys(localStorage));
+            
             // Fallback: show placeholder
-            console.log('No photo data found, using placeholders');
+            console.log('🎭 Using placeholder photos');
+            photoData = generatePlaceholderPhotos();
+        }
+
+        // Show message when session is not found
+        function showSessionNotFound(sessionId) {
+            document.getElementById('loadingMessage').innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h3 style="color: #654321; margin-bottom: 15px;">Session Not Found</h3>
+                    <p style="color: #654321; margin-bottom: 10px;">
+                        Could not find photos for session: <code>${sessionId}</code>
+                    </p>
+                    <p style="color: #654321; font-size: 0.9em; margin-bottom: 15px;">
+                        This may happen if:
+                    </p>
+                    <ul style="color: #654321; font-size: 0.9em; text-align: left; max-width: 300px; margin: 0 auto;">
+                        <li>The QR code was scanned on a different device</li>
+                        <li>Browser data was cleared</li>
+                        <li>The session expired</li>
+                    </ul>
+                    <p style="color: #654321; font-size: 0.8em; margin-top: 15px;">
+                        Try scanning the QR code on the same device that took the photos.
+                    </p>
+                </div>
+            `;
+            
+            // Still show the gallery container with placeholders
             photoData = generatePlaceholderPhotos();
         }
 
