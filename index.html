@@ -75,6 +75,7 @@
             height: 100%;
             object-fit: cover;
             display: block;
+            transform: scaleX(-1); /* Mirror/invert the camera horizontally */
         }
 
         #canvas {
@@ -394,17 +395,45 @@
         let capturedPhotos = [];
         let isCapturing = false;
 
-        // Play camera effect sound when taking photo
+        // Play camera effect sound when taking photo - ENHANCED FOR iPAD
         function playCameraEffect() {
             try {
                 const audio = new Audio('effect.mp3');
-                audio.volume = 0.8;
-                audio.play().catch(error => {
-                    console.error('Effect audio playback failed:', error);
-                });
-                console.log('Playing effect.mp3');
+                audio.volume = 1.0; // Max volume for iPad
+                audio.preload = 'auto'; // Preload for faster playback
+                
+                // Multiple attempts for iPad compatibility
+                const playPromise = audio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            console.log('Effect.mp3 playing successfully on iPad');
+                        })
+                        .catch(error => {
+                            console.error('Effect audio playback failed:', error);
+                            // Fallback: try creating new audio instance
+                            setTimeout(() => {
+                                try {
+                                    const backupAudio = new Audio('effect.mp3');
+                                    backupAudio.volume = 1.0;
+                                    backupAudio.play();
+                                    console.log('Backup audio attempt');
+                                } catch (e) {
+                                    console.error('Backup audio failed:', e);
+                                    playBeepSound(); // Last resort fallback
+                                }
+                            }, 100);
+                        });
+                } else {
+                    // Older browser support
+                    audio.play();
+                    console.log('Playing effect.mp3 (older browser method)');
+                }
+                
             } catch (error) {
                 console.error('Effect audio creation failed:', error);
+                playBeepSound(); // Fallback beep
             }
         }
 
@@ -465,6 +494,15 @@
 
         function goToFilterPage() {
             showPage('filterPage');
+            // Preload effect.mp3 for iPad compatibility
+            try {
+                const audio = new Audio('effect.mp3');
+                audio.preload = 'auto';
+                audio.load();
+                console.log('Effect.mp3 preloaded for iPad');
+            } catch (e) {
+                console.log('Audio preload failed:', e);
+            }
             // Add a small delay to ensure page is loaded before initializing camera
             setTimeout(() => {
                 initCamera();
