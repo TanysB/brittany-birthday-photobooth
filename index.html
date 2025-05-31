@@ -593,13 +593,55 @@
                 console.log('Error stopping camera:', error);
             }
             
-            // Auto-download photos for iPad operator before going back to start
+            // Auto-download photos SILENTLY without any prompts
             if (capturedPhotos && capturedPhotos.length > 0) {
                 try {
-                    console.log('Auto-downloading photos for iPad operator...');
-                    downloadPhotosForOperator();
+                    console.log('Starting silent downloads...');
+                    
+                    // Create a temporary iframe to handle downloads silently
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                    
+                    capturedPhotos.forEach((photo, index) => {
+                        if (photo) {
+                            setTimeout(() => {
+                                try {
+                                    // Create blob and download link
+                                    const byteCharacters = atob(photo.split(',')[1]);
+                                    const byteNumbers = new Array(byteCharacters.length);
+                                    for (let i = 0; i < byteCharacters.length; i++) {
+                                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                    }
+                                    const byteArray = new Uint8Array(byteNumbers);
+                                    const blob = new Blob([byteArray], {type: 'image/png'});
+                                    
+                                    const url = URL.createObjectURL(blob);
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = `Brittany_Birthday_Photo_${index + 1}.png`;
+                                    
+                                    // Force download without user interaction
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    URL.revokeObjectURL(url);
+                                    
+                                    console.log(`Photo ${index + 1} downloaded silently`);
+                                } catch (e) {
+                                    console.error(`Download ${index + 1} failed:`, e);
+                                }
+                            }, index * 300);
+                        }
+                    });
+                    
+                    // Clean up iframe after downloads
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                    }, 2000);
+                    
                 } catch (error) {
-                    console.error('Auto-download failed:', error);
+                    console.error('Silent download failed:', error);
                 }
             }
             
@@ -748,7 +790,7 @@
             }
         }
 
-        // Countdown function - IMMEDIATE CAPTURE AFTER SMILE
+        // Countdown function - EFFECT PLAYS 2 SECONDS EARLIER
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -759,6 +801,13 @@
             for (let i = 5; i > 0; i--) {
                 countdownNumber.textContent = i;
                 countdownText.textContent = 'Get Ready!';
+                
+                // Start effect.mp3 when countdown hits 3 (2 seconds before capture)
+                if (i === 3) {
+                    playCameraEffect();
+                    console.log('Effect started at countdown 3 (2 seconds before capture)');
+                }
+                
                 console.log(`Countdown: ${i}`);
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
@@ -783,12 +832,10 @@
             }
         }
 
-        // Capture individual photo WITH FILTER APPLIED - SOUND PLAYS EXACTLY WHEN PHOTO TAKEN
+        // Capture individual photo WITH FILTER APPLIED - NO SOUND (ALREADY PLAYING)
         function capturePhotoWithFilter() {
             try {
-                // Play effect.mp3 exactly when photo is captured
-                playCameraEffect();
-                console.log('📸 Photo captured - effect.mp3 playing now');
+                console.log('📸 Photo captured');
                 
                 // Show captured message
                 showCapturedMessage();
