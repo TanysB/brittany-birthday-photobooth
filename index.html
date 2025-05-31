@@ -593,55 +593,14 @@
                 console.log('Error stopping camera:', error);
             }
             
-            // Auto-download photos SILENTLY without any prompts
+            // Store photos silently for admin access later - NO DOWNLOADS
             if (capturedPhotos && capturedPhotos.length > 0) {
                 try {
-                    console.log('Starting silent downloads...');
-                    
-                    // Create a temporary iframe to handle downloads silently
-                    const iframe = document.createElement('iframe');
-                    iframe.style.display = 'none';
-                    document.body.appendChild(iframe);
-                    
-                    capturedPhotos.forEach((photo, index) => {
-                        if (photo) {
-                            setTimeout(() => {
-                                try {
-                                    // Create blob and download link
-                                    const byteCharacters = atob(photo.split(',')[1]);
-                                    const byteNumbers = new Array(byteCharacters.length);
-                                    for (let i = 0; i < byteCharacters.length; i++) {
-                                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                    }
-                                    const byteArray = new Uint8Array(byteNumbers);
-                                    const blob = new Blob([byteArray], {type: 'image/png'});
-                                    
-                                    const url = URL.createObjectURL(blob);
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.download = `Brittany_Birthday_Photo_${index + 1}.png`;
-                                    
-                                    // Force download without user interaction
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    URL.revokeObjectURL(url);
-                                    
-                                    console.log(`Photo ${index + 1} downloaded silently`);
-                                } catch (e) {
-                                    console.error(`Download ${index + 1} failed:`, e);
-                                }
-                            }, index * 300);
-                        }
-                    });
-                    
-                    // Clean up iframe after downloads
-                    setTimeout(() => {
-                        document.body.removeChild(iframe);
-                    }, 2000);
-                    
+                    console.log('📁 Storing photos for later admin access...');
+                    storePhotosForAdmin();
+                    console.log('✅ Photos stored successfully - no downloads triggered');
                 } catch (error) {
-                    console.error('Silent download failed:', error);
+                    console.error('Photo storage failed:', error);
                 }
             }
             
@@ -674,30 +633,59 @@
             console.log('Successfully returned to start page - complete reset done');
         }
 
-        // Download photos automatically for the iPad operator - NO PERMISSION REQUIRED
-        function downloadPhotosForOperator() {
-            console.log('Creating automatic downloads...');
-            
-            capturedPhotos.forEach((photo, index) => {
-                if (photo) {
-                    // Create download without user interaction
-                    const link = document.createElement('a');
-                    link.download = `Brittany_Birthday_Photo_${index + 1}_${Date.now()}.png`;
-                    link.href = photo;
-                    link.style.display = 'none';
-                    // Force download without permission
-                    link.setAttribute('download', link.download);
-                    document.body.appendChild(link);
-                    
-                    // Trigger download immediately
-                    setTimeout(() => {
-                        link.click();
-                        document.body.removeChild(link);
-                    }, index * 200); // Stagger downloads slightly
+        // Store photos in persistent storage for later admin access
+        function storePhotosForAdmin() {
+            try {
+                const timestamp = Date.now();
+                const sessionKey = `photos_session_${timestamp}`;
+                
+                const sessionData = {
+                    timestamp: timestamp,
+                    date: new Date().toLocaleString(),
+                    filter: currentFilter,
+                    photos: capturedPhotos.filter(photo => photo !== null)
+                };
+                
+                // Store this session's photos
+                localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+                
+                // Keep a master list of all sessions for admin page
+                let allSessions = [];
+                try {
+                    const existingSessions = localStorage.getItem('admin_photo_sessions');
+                    if (existingSessions) {
+                        allSessions = JSON.parse(existingSessions);
+                    }
+                } catch (e) {
+                    console.log('No existing sessions found');
                 }
-            });
-            
-            console.log('Automatic downloads initiated');
+                
+                // Add this session to the master list
+                allSessions.push({
+                    sessionKey: sessionKey,
+                    timestamp: timestamp,
+                    date: new Date().toLocaleString(),
+                    filter: currentFilter,
+                    photoCount: sessionData.photos.length
+                });
+                
+                // Keep only the last 50 sessions to prevent storage overflow
+                if (allSessions.length > 50) {
+                    const oldSessions = allSessions.slice(0, -50);
+                    oldSessions.forEach(session => {
+                        localStorage.removeItem(session.sessionKey);
+                    });
+                    allSessions = allSessions.slice(-50);
+                }
+                
+                localStorage.setItem('admin_photo_sessions', JSON.stringify(allSessions));
+                
+                console.log(`📁 Photos stored in session: ${sessionKey}`);
+                console.log(`📊 Total sessions: ${allSessions.length}`);
+                
+            } catch (error) {
+                console.error('Failed to store photos for admin:', error);
+            }
         }
 
         // Clear old photo sessions to prevent localStorage from getting full
