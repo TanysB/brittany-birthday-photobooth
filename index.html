@@ -5,26 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brittanys 22nd Birthday Photo Booth</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-    <script>
-        // Test QR library immediately when page loads
-        window.addEventListener('load', function() {
-            console.log('🔍 Testing QR library on page load...');
-            console.log('QR library type:', typeof qrcode);
-            if (typeof qrcode !== 'undefined') {
-                console.log('✅ QR library loaded successfully');
-                try {
-                    const testQr = qrcode(0, 'L');
-                    testQr.addData('test');
-                    testQr.make();
-                    console.log('✅ QR library functional test passed');
-                } catch (e) {
-                    console.error('❌ QR library test failed:', e);
-                }
-            } else {
-                console.error('❌ QR library not loaded');
-            }
-        });
-    </script>
     <style>
         * {
             margin: 0;
@@ -708,7 +688,7 @@
             }
         }
 
-        // Clear old photo sessions to prevent localStorage from getting full - ENHANCED VERSION
+        // Clear old photo sessions to prevent localStorage from getting full - ENHANCED
         function clearOldPhotoSessions(forceCleanup = false) {
             try {
                 const keys = Object.keys(localStorage);
@@ -778,13 +758,13 @@
             }, 1000);
         }
 
-        // Get CSS filter (NO BALLOON EFFECTS - CLEAN FILTERS ONLY)
+        // Get CSS filter (REMOVED BALLOON EFFECTS)
         function getFilterCSS(filter) {
             switch(filter) {
-                case 'sepia': return 'sepia(0.8) contrast(1.1) brightness(1.05)';          // Clean vintage
-                case 'grayscale': return 'grayscale(1) contrast(1.1)';                     // Clean black & white
-                case 'sunset': return 'saturate(1.3) brightness(1.05) contrast(1.1) hue-rotate(10deg)'; // Clean sunset
-                default: return 'none';  // No filter
+                case 'sepia': return 'sepia(1) contrast(1.2) brightness(1.1) saturate(1.3)';
+                case 'grayscale': return 'grayscale(1) contrast(1.2)';
+                case 'sunset': return 'saturate(1.6) brightness(1.1) contrast(1.2) hue-rotate(15deg) sepia(0.3)';
+                default: return 'none'; // Removed sparkle filter
             }
         }
 
@@ -934,7 +914,7 @@
             }
         }
 
-        // Apply filter using canvas pixel manipulation - NO BALLOON EFFECTS AT ALL
+        // Apply filter using canvas pixel manipulation for consistent results (NO BALLOON EFFECTS)
         function applyCanvasFilter(imageData, filter) {
             const data = imageData.data;
             
@@ -946,27 +926,24 @@
                 switch(filter) {
                     case 'grayscale':
                         const gray = r * 0.299 + g * 0.587 + b * 0.114;
-                        data[i] = gray;       // Simple grayscale
-                        data[i + 1] = gray;
-                        data[i + 2] = gray;
+                        data[i] = gray * 1.2;     // Add contrast
+                        data[i + 1] = gray * 1.2;
+                        data[i + 2] = gray * 1.2;
                         break;
                         
                     case 'sepia':
-                        data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189));     // Standard sepia
-                        data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168));
-                        data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131));
+                        data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189)) * 1.2;
+                        data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168)) * 1.1;
+                        data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131)) * 1.1;
                         break;
                         
                     case 'sunset':
-                        data[i] = Math.min(255, r * 1.2);     // Subtle sunset effect
-                        data[i + 1] = Math.min(255, g * 1.1);
-                        data[i + 2] = Math.min(255, b * 0.9);
+                        data[i] = Math.min(255, r * 1.6);     // Enhanced red
+                        data[i + 1] = Math.min(255, g * 1.2); // Slight green boost
+                        data[i + 2] = Math.min(255, b * 0.8); // Reduce blue
                         break;
                         
-                    // Removed all balloon/sparkle effects completely
-                    default:
-                        // No filter applied - keep original colors
-                        break;
+                    // Removed sparkle case - no more balloon effects
                 }
             }
             
@@ -1106,29 +1083,16 @@
                     }
                 }
                 
-                // Create QR URL with multiple fallback formats
+                // Create QR URL
                 let qrUrl;
                 try {
                     // Get current page URL
                     const currentLocation = window.location;
                     console.log('📍 Current location:', currentLocation.href);
                     
-                    // Try different URL formats for maximum compatibility
-                    const urlFormats = [
-                        // Format 1: Full absolute URL
-                        `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?session=${sessionId}`,
-                        
-                        // Format 2: Protocol-relative URL
-                        `//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?session=${sessionId}`,
-                        
-                        // Format 3: Simple relative URL
-                        `gallery.html?session=${sessionId}`
-                    ];
-                    
-                    // Use the first format
-                    qrUrl = urlFormats[0];
-                    console.log('🔗 Primary QR URL:', qrUrl);
-                    console.log('🔗 Fallback URLs:', urlFormats.slice(1));
+                    // Use full absolute URL for maximum compatibility
+                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?session=${sessionId}`;
+                    console.log('🔗 QR URL:', qrUrl);
                     
                 } catch (urlError) {
                     console.error('❌ URL generation failed:', urlError);
@@ -1136,135 +1100,111 @@
                     console.log('🔗 Fallback QR URL:', qrUrl);
                 }
                 
-                // Visual update
-                qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">📚 Checking QR library...</div>';
+                // Generate QR code with multiple attempts
+                let qrGenerated = false;
                 
-                // METHOD 1: Try local QR library first
-                setTimeout(() => {
-                    if (typeof qrcode !== 'undefined') {
-                        console.log('🔄 Local QR library available, generating...');
-                        qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">🔧 Creating QR code...</div>';
-                        
-                        try {
-                            const qr = qrcode(0, 'L');
-                            qr.addData(qrUrl);
-                            qr.make();
-                            const qrImageHtml = qr.createImgTag(4, 2);
-                            qrContainer.innerHTML = qrImageHtml;
-                            console.log('✅ LOCAL QR LIBRARY SUCCESS!');
-                            
-                            // Add success indicator temporarily
-                            setTimeout(() => {
-                                const successDiv = document.createElement('div');
-                                successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: green; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
-                                successDiv.textContent = '✅ LOCAL QR';
-                                qrContainer.style.position = 'relative';
-                                qrContainer.appendChild(successDiv);
-                                
-                                setTimeout(() => successDiv.remove(), 3000);
-                            }, 100);
-                            
-                            // Auto-download QR code
-                            setTimeout(() => {
-                                const qrImg = qrContainer.querySelector('img');
-                                if (qrImg && qrImg.src) {
-                                    downloadQRCode(qrImg.src, sessionId);
-                                    console.log('🔽 QR code download initiated');
-                                }
-                            }, 500);
-                            
-                            // DEBUG: Show what URL is encoded in QR
-                            console.log('📱 QR Code contains URL:', qrUrl);
-                            console.log('📱 Session data stored with key:', sessionId);
-                            
-                            return;
-                        } catch (localError) {
-                            console.error('❌ Local QR failed:', localError);
-                            qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">❌ Local QR failed<br>🌐 Trying online...</div>';
-                        }
-                    } else {
-                        console.error('❌ QR library not available');
-                        qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.7em; text-align: center;">❌ No local QR library<br>🌐 Trying online...</div>';
+                // Attempt 1: Standard QR generation
+                try {
+                    console.log('🔄 Attempting QR generation...');
+                    
+                    if (typeof qrcode === 'undefined') {
+                        throw new Error('QR code library not loaded');
                     }
                     
-                    // METHOD 2: Use online QR API as fallback
+                    const qr = qrcode(0, 'L'); // Low error correction
+                    qr.addData(qrUrl);
+                    qr.make();
+                    
+                    const qrImage = qr.createImgTag(6, 0);
+                    qrContainer.innerHTML = qrImage;
+                    qrGenerated = true;
+                    
+                    console.log('✅ QR CODE GENERATED SUCCESSFULLY!');
+                    
+                    // Add success indicator
                     setTimeout(() => {
-                        console.log('🌐 Trying online QR API...');
-                        const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`;
-                        console.log('📡 API request URL:', apiUrl);
+                        const successDiv = document.createElement('div');
+                        successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: green; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
+                        successDiv.textContent = '✅ QR SUCCESS';
+                        qrContainer.style.position = 'relative';
+                        qrContainer.appendChild(successDiv);
                         
-                        const qrImg = document.createElement('img');
-                        qrImg.style.width = '100%';
-                        qrImg.style.height = '100%';
-                        qrImg.style.objectFit = 'contain';
+                        setTimeout(() => successDiv.remove(), 3000);
+                    }, 100);
+                    
+                } catch (qrError) {
+                    console.error('❌ QR generation failed:', qrError);
+                }
+                
+                // Attempt 2: Smaller QR code if first attempt failed
+                if (!qrGenerated) {
+                    try {
+                        console.log('🔄 Attempting smaller QR code...');
+                        const qr = qrcode(0, 'M'); // Medium error correction
+                        qr.addData(qrUrl);
+                        qr.make();
                         
-                        qrImg.onload = function() {
-                            console.log('✅ ONLINE QR API SUCCESS!');
-                            qrContainer.innerHTML = '';
-                            qrContainer.appendChild(qrImg);
-                            
-                            // Add success indicator
-                            const successDiv = document.createElement('div');
-                            successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: blue; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
-                            successDiv.textContent = '✅ ONLINE QR';
-                            qrContainer.style.position = 'relative';
-                            qrContainer.appendChild(successDiv);
-                            
-                            setTimeout(() => successDiv.remove(), 3000);
-                            
-                            // Download
-                            setTimeout(() => {
-                                downloadQRCode(qrImg.src, sessionId);
-                                console.log('🔽 Online QR code download initiated');
-                            }, 500);
-                            
-                            // DEBUG: Show what URL is encoded
-                            console.log('📱 Online QR Code contains URL:', qrUrl);
-                        };
+                        const qrImage = qr.createImgTag(4, 0); // Smaller size
+                        qrContainer.innerHTML = qrImage;
+                        qrGenerated = true;
                         
-                        qrImg.onerror = function() {
-                            console.error('❌ Online QR API failed');
-                            // METHOD 3: Manual QR display
-                            qrContainer.innerHTML = `
-                                <div style="color: white; padding: 6px; font-size: 0.65em; text-align: center; line-height: 1.3;">
-                                    <div style="background: orange; color: black; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px; font-size: 0.9em;">📱 MANUAL QR</div>
-                                    <div style="background: white; color: black; padding: 6px; margin: 4px 0; border-radius: 4px; font-family: monospace; font-size: 0.7em; word-break: break-all; line-height: 1.2;">
-                                        ${qrUrl}
-                                    </div>
-                                    <small>Copy URL above to view photos</small>
-                                </div>
-                            `;
-                            console.log('📱 Manual QR displayed with URL:', qrUrl);
-                        };
+                        console.log('✅ Smaller QR code generated successfully!');
                         
-                        qrImg.src = apiUrl;
+                    } catch (qrError2) {
+                        console.error('❌ Smaller QR generation failed:', qrError2);
+                    }
+                }
+                
+                // Final fallback: Show session info
+                if (!qrGenerated) {
+                    console.error('❌ All QR generation attempts failed');
+                    qrContainer.innerHTML = `
+                        <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
+                            <strong>Photos Ready!</strong><br>
+                            Session: ${sessionId.slice(-8)}<br>
+                            <small>Visit gallery.html manually<br>
+                            URL: gallery.html?session=${sessionId}</small>
+                        </div>
+                    `;
+                } else {
+                    // AUTO-DOWNLOAD QR CODE IMAGE if generation succeeded
+                    setTimeout(() => {
+                        try {
+                            const qrImg = qrContainer.querySelector('img');
+                            if (qrImg && qrImg.src) {
+                                const link = document.createElement('a');
+                                link.download = `QR_Code_${sessionId.slice(-8)}.png`;
+                                link.href = qrImg.src;
+                                link.style.display = 'none';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                console.log('🔽 QR code auto-downloaded');
+                            }
+                        } catch (downloadError) {
+                            console.log('QR download failed:', downloadError);
+                        }
                     }, 1000);
-                }, 500);
+                }
+                
+                // Update subtitle
+                const subtitle = document.getElementById('qrSubtitle');
+                if (subtitle) {
+                    subtitle.textContent = qrGenerated ? 'Scan to view photos!' : 'Photos saved - check manually';
+                }
+                
+                // DEBUG: Show what URL is encoded in QR
+                console.log('📱 QR Code contains URL:', qrUrl);
+                console.log('📱 Session data stored with key:', sessionId);
                 
             } catch (error) {
                 console.error('❌ All QR methods failed:', error);
                 qrContainer.innerHTML = `
                     <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">
-                        <div style="background: red; color: white; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px;">❌ ALL QR FAILED</div>
+                        <div style="background: red; color: white; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px;">❌ QR FAILED</div>
                         <small>Photos saved locally<br>Session: ${Date.now().toString().slice(-8)}</small>
                     </div>
                 `;
-            }
-        }
-
-        // Download QR code helper
-        function downloadQRCode(imageSrc, sessionId) {
-            try {
-                const link = document.createElement('a');
-                link.download = `QR_Code_${sessionId.slice(-8)}.png`;
-                link.href = imageSrc;
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                console.log('🔽 QR code downloaded successfully');
-            } catch (downloadError) {
-                console.log('QR download failed:', downloadError);
             }
         }
 
