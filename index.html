@@ -180,6 +180,56 @@
             font-family: 'Georgia', serif;
         }
 
+        /* Captured message - Mexican Western themed */
+        .captured-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #8B4513, #654321, #4a2c1a);
+            color: #F5DEB3;
+            padding: 25px 45px;
+            border-radius: 25px;
+            font-size: 2.2em;
+            font-weight: bold;
+            font-family: 'Georgia', serif;
+            text-align: center;
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.6),
+                0 8px 20px rgba(139, 69, 19, 0.4),
+                inset 0 3px 0 rgba(245, 222, 179, 0.3);
+            border: 4px solid #DEB887;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: none;
+            animation: captureFlash 1.5s ease-out;
+            letter-spacing: 2px;
+        }
+
+        .captured-message::after {
+            content: 'Captured, Partner!';
+            display: block;
+            font-size: 0.6em;
+            margin-top: 8px;
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        @keyframes captureFlash {
+            0% { 
+                transform: translate(-50%, -50%) scale(0.7);
+                opacity: 0;
+            }
+            20% { 
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 1;
+            }
+            100% { 
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
         /* Result Page */
         .result-page {
             background-image: url('end.png');
@@ -354,6 +404,11 @@
             <div class="countdown-text" id="countdownText">Get Ready!</div>
         </div>
         <div class="progress-bar hidden" id="progressBar">Photo 1 of 3</div>
+        
+        <!-- Captured message - Mexican Western themed -->
+        <div class="captured-message hidden" id="capturedMessage">
+            CAPTURED!
+        </div>
     </div>
 
     <!-- Result Page -->
@@ -573,6 +628,7 @@
             // Hide countdown and progress elements
             document.getElementById('countdownContainer').classList.add('hidden');
             document.getElementById('progressBar').classList.add('hidden');
+            document.getElementById('capturedMessage').classList.add('hidden');
             
             // Reset video filters
             video.style.filter = 'none';
@@ -719,12 +775,28 @@
             countdownContainer.classList.add('hidden');
         }
 
+        // Show captured message with Mexican Western flair
+        function showCapturedMessage() {
+            const capturedMsg = document.getElementById('capturedMessage');
+            if (capturedMsg) {
+                capturedMsg.classList.remove('hidden');
+                
+                // Hide after 1.5 seconds
+                setTimeout(() => {
+                    capturedMsg.classList.add('hidden');
+                }, 1500);
+            }
+        }
+
         // Capture individual photo WITH FILTER APPLIED - SOUND PLAYS EXACTLY WHEN PHOTO TAKEN
         function capturePhotoWithFilter() {
             try {
                 // Play effect.mp3 exactly when photo is captured
                 playCameraEffect();
                 console.log('📸 Photo captured - effect.mp3 playing now');
+                
+                // Show captured message
+                showCapturedMessage();
                 
                 canvas.width = captureVideo.videoWidth;
                 canvas.height = captureVideo.videoHeight;
