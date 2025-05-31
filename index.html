@@ -697,7 +697,7 @@
             }
         }
 
-        // Countdown function - sound effect timing adjusted
+        // Countdown function - sound effect plays when "Howdy" appears
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -708,19 +708,17 @@
             for (let i = 5; i > 0; i--) {
                 countdownNumber.textContent = i;
                 countdownText.textContent = 'Get Ready!';
-                
-                // Start effect.mp3 when countdown hits 2 (1 second before photo capture)
-                if (i === 0) {
-                    playCameraEffect();
-                    console.log('Effect started at countdown 2');
-                }
-                
                 console.log(`Countdown: ${i}`);
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
             countdownNumber.textContent = 'SMILE';
             countdownText.textContent = 'Say "Howdy!"';
+            
+            // Start effect.mp3 exactly when "Say Howdy!" appears
+            playCameraEffect();
+            console.log('Effect started when "Say Howdy!" appears');
+            
             await new Promise(resolve => setTimeout(resolve, 500));
             
             countdownContainer.classList.add('hidden');
