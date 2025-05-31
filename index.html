@@ -867,9 +867,9 @@
             }
         }
 
-        // FIXED: Put photos directly in QR URL instead of localStorage
+        // SIMPLE QR CODE: Just link to gallery, let it find photos automatically
         function generateQRCodeWithPhotosInURL() {
-            console.log('=== QR CODE GENERATION WITH URL PHOTOS ===');
+            console.log('=== SIMPLE QR CODE GENERATION ===');
             
             const qrContainer = document.getElementById('qrcode');
             if (!qrContainer) {
@@ -889,144 +889,75 @@
                     return;
                 }
                 
-                // Create photo data for URL
+                // Store photos in browser storage for the gallery to find
+                const photoId = 'latest_photos';
                 const photoData = {
                     photos: validPhotos,
                     filter: currentFilter,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    date: new Date().toLocaleString()
                 };
                 
-                // Convert to JSON and encode for URL
-                const jsonString = JSON.stringify(photoData);
-                const encodedPhotos = btoa(jsonString);
+                console.log(`📊 Storing ${validPhotos.length} photos...`);
                 
-                console.log(`📊 Photo data size: ${(jsonString.length / 1024).toFixed(1)} KB`);
-                console.log(`📊 Encoded size: ${(encodedPhotos.length / 1024).toFixed(1)} KB`);
+                // Store in multiple places for maximum compatibility
+                try {
+                    localStorage.setItem(photoId, JSON.stringify(photoData));
+                    localStorage.setItem('has_recent_photos', 'true');
+                    console.log('✅ Stored in localStorage');
+                } catch (e) {
+                    console.log('❌ localStorage failed');
+                }
                 
-                // Create QR URL with photos in URL parameter
+                try {
+                    sessionStorage.setItem(photoId, JSON.stringify(photoData));
+                    sessionStorage.setItem('has_recent_photos', 'true');
+                    console.log('✅ Stored in sessionStorage');
+                } catch (e) {
+                    console.log('❌ sessionStorage failed');
+                }
+                
+                // Create the simplest possible QR code - just the album download page
                 let qrUrl;
                 try {
-                    // Get current page URL
                     const currentLocation = window.location;
-                    console.log('📍 Current location:', currentLocation.href);
+                    // Point to the album download page instead of gallery
+                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}album.html`;
                     
-                    // Use full absolute URL for maximum compatibility
-                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?photos=${encodedPhotos}`;
-                    console.log('🔗 QR URL length:', qrUrl.length);
+                    console.log(`🔗 Album QR URL: ${qrUrl} (${qrUrl.length} chars)`);
                     
-                } catch (urlError) {
-                    console.error('❌ URL generation failed:', urlError);
-                    qrUrl = `gallery.html?photos=${encodedPhotos}`;
-                    console.log('🔗 Fallback QR URL length:', qrUrl.length);
-                }
-                
-                // Check if URL is too long for QR code
-                if (qrUrl.length > 2000) {
-                    console.warn('⚠️ URL too long, using compressed photos');
-                    
-                    // Try with fewer photos or lower quality
-                    const compressedPhotos = validPhotos.map(photo => {
-                        // Create a smaller canvas to compress further
-                        const img = new Image();
-                        img.src = photo;
-                        
-                        const tempCanvas = document.createElement('canvas');
-                        const tempCtx = tempCanvas.getContext('2d');
-                        tempCanvas.width = 200; // Even smaller
-                        tempCanvas.height = 150;
-                        
-                        tempCtx.drawImage(img, 0, 0, 200, 150);
-                        return tempCanvas.toDataURL('image/jpeg', 0.3); // Very low quality
-                    });
-                    
-                    const compressedData = {
-                        photos: compressedPhotos,
-                        filter: currentFilter,
-                        timestamp: Date.now()
-                    };
-                    
-                    const compressedJson = JSON.stringify(compressedData);
-                    const compressedEncoded = btoa(compressedJson);
-                    
-                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}gallery.html?photos=${compressedEncoded}`;
-                    
-                    console.log(`📊 Compressed URL length: ${qrUrl.length}`);
-                }
-                
-                // Generate QR code with multiple attempts
-                let qrGenerated = false;
-                
-                // Attempt 1: Standard QR generation
-                try {
-                    console.log('🔄 Attempting QR generation...');
-                    
+                    // Generate QR code
                     if (typeof qrcode === 'undefined') {
                         throw new Error('QR code library not loaded');
                     }
                     
-                    const qr = qrcode(0, 'L'); // Low error correction for more data
+                    const qr = qrcode(0, 'M'); // Medium error correction
                     qr.addData(qrUrl);
                     qr.make();
                     
                     const qrImage = qr.createImgTag(6, 0);
                     qrContainer.innerHTML = qrImage;
-                    qrGenerated = true;
                     
-                    console.log('✅ QR CODE WITH PHOTOS GENERATED SUCCESSFULLY!');
+                    console.log('✅ ALBUM QR CODE GENERATED SUCCESSFULLY!');
                     
                     // Add success indicator
                     setTimeout(() => {
                         const successDiv = document.createElement('div');
                         successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: green; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
-                        successDiv.textContent = '✅ QR SUCCESS';
+                        successDiv.textContent = '✅ QR OK';
                         qrContainer.style.position = 'relative';
                         qrContainer.appendChild(successDiv);
                         
                         setTimeout(() => successDiv.remove(), 3000);
                     }, 100);
                     
-                } catch (qrError) {
-                    console.error('❌ QR generation failed:', qrError);
-                }
-                
-                // Attempt 2: Smaller QR code if first attempt failed
-                if (!qrGenerated) {
-                    try {
-                        console.log('🔄 Attempting smaller QR code...');
-                        const qr = qrcode(0, 'M'); // Medium error correction
-                        qr.addData(qrUrl);
-                        qr.make();
-                        
-                        const qrImage = qr.createImgTag(4, 0); // Smaller size
-                        qrContainer.innerHTML = qrImage;
-                        qrGenerated = true;
-                        
-                        console.log('✅ Smaller QR code generated successfully!');
-                        
-                    } catch (qrError2) {
-                        console.error('❌ Smaller QR generation failed:', qrError2);
-                    }
-                }
-                
-                // Final fallback: Show error but with manual URL
-                if (!qrGenerated) {
-                    console.error('❌ All QR generation attempts failed');
-                    qrContainer.innerHTML = `
-                        <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
-                            <strong>QR Failed</strong><br>
-                            Photos ready but<br>
-                            too large for QR<br>
-                            <small>Try fewer photos</small>
-                        </div>
-                    `;
-                } else {
-                    // AUTO-DOWNLOAD QR CODE IMAGE if generation succeeded
+                    // Auto-download QR code
                     setTimeout(() => {
                         try {
                             const qrImg = qrContainer.querySelector('img');
                             if (qrImg && qrImg.src) {
                                 const link = document.createElement('a');
-                                link.download = `QR_Code_Photos_${Date.now().toString().slice(-8)}.png`;
+                                link.download = `Album_QR_Code.png`;
                                 link.href = qrImg.src;
                                 link.style.display = 'none';
                                 document.body.appendChild(link);
@@ -1038,25 +969,41 @@
                             console.log('QR download failed:', downloadError);
                         }
                     }, 1000);
+                    
+                    // Update subtitle
+                    const subtitle = document.getElementById('qrSubtitle');
+                    if (subtitle) {
+                        subtitle.textContent = 'Scan to download album!';
+                    }
+                    
+                    console.log('📱 Album QR generation complete');
+                    return; // Success!
+                    
+                } catch (qrError) {
+                    console.error('❌ Even simple QR failed:', qrError);
                 }
                 
-                // Update subtitle
+                // If even the simple QR failed, show manual instructions
+                qrContainer.innerHTML = `
+                    <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
+                        <strong>QR Library Error</strong><br>
+                        Photos saved successfully<br>
+                        <small>Visit gallery.html manually<br>to view your photos</small>
+                    </div>
+                `;
+                
+                // Update subtitle for manual case
                 const subtitle = document.getElementById('qrSubtitle');
                 if (subtitle) {
-                    subtitle.textContent = qrGenerated ? 'Scan to view photos!' : 'Photos ready - QR too large';
+                    subtitle.textContent = 'Visit gallery.html manually';
                 }
                 
-                // DEBUG: Show what URL is encoded in QR
-                console.log('📱 QR Code contains URL with embedded photos');
-                console.log('📱 URL length:', qrUrl.length);
-                console.log('📱 Photo count:', validPhotos.length);
-                
             } catch (error) {
-                console.error('❌ QR generation failed:', error);
+                console.error('❌ QR generation completely failed:', error);
                 qrContainer.innerHTML = `
                     <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">
-                        <div style="background: red; color: white; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px;">❌ QR FAILED</div>
-                        <small>Error generating QR<br>Photos displayed above</small>
+                        <div style="background: red; color: white; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px;">❌ ERROR</div>
+                        <small>Check browser console<br>for details</small>
                     </div>
                 `;
             }
