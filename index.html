@@ -251,12 +251,14 @@
             width: 90%;
         }
 
+        /* BIGGER QR CODE */
         .qr-code img {
-            width: 450%;
-            height: 450%;
-            max-width: 2550px;
-            max-height: 2550px;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: none !important;
             display: block;
+            object-fit: contain;
         }
 
         .qr-subtitle {
@@ -268,7 +270,7 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
-        /* Done button area - TOUCHSCREEN OPTIMIZED */
+        /* Done button area - CLEAN VERSION */
         .done-button-area {
             position: absolute;
             bottom: 15%;
@@ -277,16 +279,7 @@
             width: 40%;
             height: 12%;
             cursor: pointer;
-            /* Touchscreen optimization */
             touch-action: manipulation;
-            -webkit-tap-highlight-color: rgba(255, 0, 0, 0.2);
-            /* Temporary debug border - remove after testing */
-            
-        }
-
-        .done-button-area:active {
-            background: rgba(255, 0, 0, 0.3);
-            transform: translateX(-50%) scale(0.95);
         }
 
         .hidden {
@@ -307,11 +300,6 @@
                 top: 15%;
                 width: 70%;
                 height: 30%;
-            }
-            
-            .qr-code img {
-                width: 50px;
-                height: 50px;
             }
         }
 
@@ -385,12 +373,8 @@
             <div class="qr-subtitle" id="qrSubtitle">Scan to view photos</div>
         </div>
         
-        <!-- Clickable area for Done button (TOUCHSCREEN OPTIMIZED) -->
-        <div class="done-button-area" 
-             onclick="goToStart()" 
-             ontouchstart="this.style.background='rgba(255,0,0,0.4)'"
-             ontouchend="this.style.background='rgba(255,0,0,0.1)'"
-             style="z-index: 1000;"></div>
+        <!-- Clickable area for Done button (CLEAN VERSION) -->
+        <div class="done-button-area" onclick="goToStart()"></div>
     </div>
 
     <script>
@@ -401,6 +385,17 @@
         let currentFilter = 'none';
         let capturedPhotos = [];
         let isCapturing = false;
+
+        // Speech synthesis for countdown voice
+        function speakCountdown(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.2;
+                utterance.pitch = 1.1;
+                utterance.volume = 0.8;
+                speechSynthesis.speak(utterance);
+            }
+        }
 
         // Initialize camera
         async function initCamera() {
@@ -446,13 +441,6 @@
         function goToStart() {
             console.log('=== DONE BUTTON PRESSED ===');
             
-            // Visual feedback for touchscreen
-            const doneButton = document.querySelector('.done-button-area');
-            if (doneButton) {
-                doneButton.style.background = 'rgba(0, 255, 0, 0.3)';
-                doneButton.style.transform = 'translateX(-50%) scale(0.9)';
-            }
-            
             // Auto-download photos for iPad operator before going back to start
             if (capturedPhotos && capturedPhotos.length > 0) {
                 try {
@@ -463,13 +451,12 @@
                 }
             }
             
-            // Small delay for visual feedback, then reset
-            setTimeout(() => {
-                showPage('startPage');
-                capturedPhotos = [];
-                clearOldPhotoSessions();
-                console.log('Returned to start page');
-            }, 300);
+            // Reset and go back to start
+            showPage('startPage');
+            capturedPhotos = [];
+            currentFilter = 'none';
+            clearOldPhotoSessions();
+            console.log('Returned to start page');
         }
 
         // Download photos automatically for the iPad operator
@@ -559,13 +546,13 @@
                     console.log(`Capturing photo ${i + 1}`);
                     progressBar.textContent = `Photo ${i + 1} of 3`;
                     
-                    // 5 second countdown
+                    // 5 second countdown with voice
                     await countdown();
                     
-                    // Capture photo
-                    const photoData = capturePhoto();
+                    // Capture photo with filter applied
+                    const photoData = capturePhotoWithFilter();
                     capturedPhotos.push(photoData);
-                    console.log(`Photo ${i + 1} captured successfully`);
+                    console.log(`Photo ${i + 1} captured successfully with filter: ${currentFilter}`);
                     
                     // Brief pause between photos (except after the last one)
                     if (i < 2) {
@@ -585,7 +572,7 @@
             }
         }
 
-        // Countdown function - displayed below the white square
+        // Countdown function with voice - displayed below the white square
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -596,37 +583,79 @@
             for (let i = 5; i > 0; i--) {
                 countdownNumber.textContent = i;
                 countdownText.textContent = 'Get Ready!';
+                speakCountdown(i.toString()); // Add voice countdown
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
             countdownNumber.textContent = 'SMILE';
             countdownText.textContent = 'Say "Howdy!"';
+            speakCountdown('Say Howdy!'); // Add voice instruction
             await new Promise(resolve => setTimeout(resolve, 500));
             
             countdownContainer.classList.add('hidden');
         }
 
-        // Capture individual photo
-        function capturePhoto() {
+        // Capture individual photo WITH FILTER APPLIED
+        function capturePhotoWithFilter() {
             try {
                 canvas.width = captureVideo.videoWidth;
                 canvas.height = captureVideo.videoHeight;
                 
-                // Apply filter
-                if (currentFilter !== 'none') {
-                    ctx.filter = getFilterCSS(currentFilter);
-                }
-                
+                // First draw the video frame normally
                 ctx.drawImage(captureVideo, 0, 0);
                 
-                // Reset filter for next operations
-                ctx.filter = 'none';
+                // Then apply the filter using canvas manipulation for consistent results
+                if (currentFilter !== 'none') {
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const filteredImageData = applyCanvasFilter(imageData, currentFilter);
+                    ctx.putImageData(filteredImageData, 0, 0);
+                }
                 
                 return canvas.toDataURL('image/png');
             } catch (error) {
                 console.error('Error capturing photo:', error);
                 return null;
             }
+        }
+
+        // Apply filter using canvas pixel manipulation for consistent results
+        function applyCanvasFilter(imageData, filter) {
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                switch(filter) {
+                    case 'grayscale':
+                        const gray = r * 0.299 + g * 0.587 + b * 0.114;
+                        data[i] = gray * 1.2;     // Add contrast
+                        data[i + 1] = gray * 1.2;
+                        data[i + 2] = gray * 1.2;
+                        break;
+                        
+                    case 'sepia':
+                        data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189)) * 1.2;
+                        data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168)) * 1.1;
+                        data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131)) * 1.1;
+                        break;
+                        
+                    case 'sunset':
+                        data[i] = Math.min(255, r * 1.6);     // Enhanced red
+                        data[i + 1] = Math.min(255, g * 1.2); // Slight green boost
+                        data[i + 2] = Math.min(255, b * 0.8); // Reduce blue
+                        break;
+                        
+                    case 'sparkle':
+                        data[i] = Math.min(255, r * 1.4);     // Boost red
+                        data[i + 1] = Math.min(255, g * 1.2); // Boost green
+                        data[i + 2] = Math.min(255, b * 1.2); // Boost blue
+                        break;
+                }
+            }
+            
+            return imageData;
         }
 
         // Show results - TOUCHSCREEN & QR FIXED VERSION
@@ -646,7 +675,7 @@
                             img.alt = `Photo ${index + 1}`;
                             photoSlot.innerHTML = '';
                             photoSlot.appendChild(img);
-                            console.log(`Photo ${index + 1} displayed successfully`);
+                            console.log(`Photo ${index + 1} displayed successfully with filter: ${currentFilter}`);
                         }
                     }
                 });
@@ -711,7 +740,8 @@
                     qr.addData(qrUrl);
                     qr.make();
                     
-                    const qrImage = qr.createImgTag(4, 8); // Larger QR for easier scanning
+                    // BIGGER QR CODE - increased size parameters
+                    const qrImage = qr.createImgTag(8, 0); // Much larger QR code
                     qrContainer.innerHTML = qrImage;
                     
                     console.log('✅ QR CODE GENERATED SUCCESSFULLY!');
@@ -736,63 +766,6 @@
             } catch (error) {
                 console.error('QR generation error:', error);
                 qrContainer.innerHTML = '<div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">Photos captured!<br>Check iPad downloads</div>';
-            }
-        }
-
-        // Generate QR code for photo strip - SIMPLIFIED VERSION
-        function generateQRCode() {
-            try {
-                // Filter out any null photos
-                const validPhotos = capturedPhotos.filter(photo => photo !== null);
-                
-                if (validPhotos.length === 0) {
-                    console.error('No valid photos to encode');
-                    document.getElementById('qrcode').innerHTML = '<div style="color: white; padding: 10px;">No photos captured</div>';
-                    return;
-                }
-                
-                // Create a simple session ID instead of encoding all photo data
-                const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                
-                // Store photos in localStorage with the session ID
-                localStorage.setItem(sessionId, JSON.stringify(validPhotos));
-                
-                // For testing locally, show the session ID and instructions
-                const isLocalFile = window.location.protocol === 'file:';
-                
-                if (isLocalFile) {
-                    // Show testing instructions for local development
-                    document.getElementById('qrcode').innerHTML = `
-                        <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center; line-height: 1.3;">
-                            <strong>Local Testing</strong><br>
-                            Session: ${sessionId.slice(-8)}<br>
-                            <small>Photos saved locally!<br>
-                            Open gallery.html manually<br>
-                            to view photos</small>
-                        </div>
-                    `;
-                    document.getElementById('qrSubtitle').textContent = 'Testing mode - no QR needed';
-                } else {
-                    // Create a simple URL with just the session ID
-                    const galleryUrl = `gallery.html?session=${sessionId}`;
-                    
-                    console.log('Gallery URL:', galleryUrl);
-                    console.log('URL length:', galleryUrl.length);
-                    
-                    // This URL should work with QR codes when hosted
-                    const qr = qrcode(0, 'L'); // Use 'L' (Low) error correction for smaller QR codes
-                    qr.addData(galleryUrl);
-                    qr.make();
-                    
-                    document.getElementById('qrcode').innerHTML = qr.createImgTag(3, 4);
-                    document.getElementById('qrSubtitle').textContent = 'Scan to view photos';
-                    console.log('QR code created successfully');
-                }
-                
-            } catch (error) {
-                console.error('QR generation error:', error);
-                // Fallback: show a simple message
-                document.getElementById('qrcode').innerHTML = '<div style="color: white; padding: 8px; font-size: 0.9em; text-align: center;">Photos Ready!<br><small>Manual access available</small></div>';
             }
         }
 
