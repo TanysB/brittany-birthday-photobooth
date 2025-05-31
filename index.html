@@ -270,7 +270,7 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
-        /* Done button area - CLEAN VERSION */
+        /* Done button area - ENHANCED CLICKABILITY */
         .done-button-area {
             position: absolute;
             bottom: 15%;
@@ -280,6 +280,19 @@
             height: 12%;
             cursor: pointer;
             touch-action: manipulation;
+            z-index: 1000;
+            /* Add visible border for testing - remove after confirming it works */
+            border: 2px solid rgba(255, 0, 0, 0.3);
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .done-button-area:hover {
+            background: rgba(0, 255, 0, 0.2);
+        }
+
+        .done-button-area:active {
+            background: rgba(0, 255, 0, 0.4);
+            transform: translateX(-50%) scale(0.95);
         }
 
         .hidden {
@@ -373,8 +386,14 @@
             <div class="qr-subtitle" id="qrSubtitle">Scan to view photos</div>
         </div>
         
-        <!-- Clickable area for Done button (CLEAN VERSION) -->
-        <div class="done-button-area" onclick="goToStart()"></div>
+        <!-- Clickable area for Done button (ENHANCED CLICKABILITY) -->
+        <div class="done-button-area" 
+             onclick="goToStart()" 
+             ontouchstart="console.log('Touch started on done button')"
+             ontouchend="console.log('Touch ended on done button')"
+             onmousedown="console.log('Mouse down on done button')"
+             onmouseup="console.log('Mouse up on done button')">
+        </div>
     </div>
 
     <script>
@@ -386,14 +405,39 @@
         let capturedPhotos = [];
         let isCapturing = false;
 
-        // Speech synthesis for countdown voice
-        function speakCountdown(text) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.2;
-                utterance.pitch = 1.1;
-                utterance.volume = 0.8;
-                speechSynthesis.speak(utterance);
+        // Play camera effect sound when taking photo
+        function playCameraEffect() {
+            try {
+                const audio = new Audio('effect.mp3');
+                audio.volume = 0.8;
+                audio.play().catch(error => {
+                    console.error('Effect audio playback failed:', error);
+                });
+                console.log('Playing effect.mp3');
+            } catch (error) {
+                console.error('Effect audio creation failed:', error);
+            }
+        }
+
+        // Individual beep for fallback (if needed)
+        function playBeepSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800; // High pitch beep
+                gainNode.gain.value = 0.3;
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.2); // 200ms beep
+                
+                console.log('Beep sound played');
+            } catch (error) {
+                console.error('Beep sound failed:', error);
             }
         }
 
@@ -439,7 +483,19 @@
         }
 
         function goToStart() {
-            console.log('=== DONE BUTTON PRESSED ===');
+            console.log('=== DONE/BACK BUTTON PRESSED ===');
+            
+            // Stop any ongoing camera streams
+            try {
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+                if (captureVideo.srcObject) {
+                    captureVideo.srcObject.getTracks().forEach(track => track.stop());
+                }
+            } catch (error) {
+                console.log('Error stopping camera:', error);
+            }
             
             // Auto-download photos for iPad operator before going back to start
             if (capturedPhotos && capturedPhotos.length > 0) {
@@ -451,12 +507,32 @@
                 }
             }
             
-            // Reset and go back to start
-            showPage('startPage');
+            // Complete reset of all variables and UI state
             capturedPhotos = [];
             currentFilter = 'none';
+            isCapturing = false;
+            
+            // Clear all photo displays
+            document.getElementById('photo1').innerHTML = '';
+            document.getElementById('photo2').innerHTML = '';
+            document.getElementById('photo3').innerHTML = '';
+            
+            // Clear QR code
+            document.getElementById('qrcode').innerHTML = '';
+            
+            // Hide countdown and progress elements
+            document.getElementById('countdownContainer').classList.add('hidden');
+            document.getElementById('progressBar').classList.add('hidden');
+            
+            // Reset video filters
+            video.style.filter = 'none';
+            captureVideo.style.filter = 'none';
+            
+            // Go back to start page
+            showPage('startPage');
             clearOldPhotoSessions();
-            console.log('Returned to start page');
+            
+            console.log('Successfully returned to start page - complete reset done');
         }
 
         // Download photos automatically for the iPad operator
@@ -572,7 +648,7 @@
             }
         }
 
-        // Countdown function with voice - displayed below the white square
+        // Countdown function - silent countdown, sound effect on photo capture
         async function countdown() {
             const countdownContainer = document.getElementById('countdownContainer');
             const countdownNumber = document.getElementById('countdownNumber');
@@ -583,13 +659,17 @@
             for (let i = 5; i > 0; i--) {
                 countdownNumber.textContent = i;
                 countdownText.textContent = 'Get Ready!';
-                speakCountdown(i.toString()); // Add voice countdown
+                console.log(`Countdown: ${i}`);
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
             countdownNumber.textContent = 'SMILE';
             countdownText.textContent = 'Say "Howdy!"';
-            speakCountdown('Say Howdy!'); // Add voice instruction
+            
+            // Start effect.mp3 early so it peaks right when photo is captured
+            // Since effect.mp3 is 4 seconds long, start it 3.5 seconds early
+            playCameraEffect();
+            
             await new Promise(resolve => setTimeout(resolve, 500));
             
             countdownContainer.classList.add('hidden');
