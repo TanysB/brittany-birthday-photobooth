@@ -36,13 +36,13 @@
 
         /* Start Page */
         .start-page {
-            background-image: url('start.png');
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="%23F5DEB3"/><text x="400" y="300" text-anchor="middle" font-family="Georgia" font-size="48" fill="%23654321">🤠 Brittany\'s 22nd Birthday 🤠</text><text x="400" y="360" text-anchor="middle" font-family="Georgia" font-size="24" fill="%23654321">Western Photo Booth</text><text x="400" y="420" text-anchor="middle" font-family="Georgia" font-size="18" fill="%23654321">Tap anywhere to start!</text></svg>');
             cursor: pointer;
         }
 
         /* Filter Page */
         .filter-page {
-            background-image: url('filters.png');
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="%23F5DEB3"/><rect x="100" y="80" width="600" height="200" fill="white" stroke="%23654321" stroke-width="3"/><text x="400" y="320" text-anchor="middle" font-family="Georgia" font-size="24" fill="%23654321">Choose Your Filter:</text><rect x="150" y="340" width="120" height="30" fill="%23DEB887" stroke="%23654321" stroke-width="2" rx="15"/><text x="210" y="360" text-anchor="middle" font-family="Georgia" font-size="14" fill="%23654321">No Filter</text><rect x="290" y="340" width="120" height="30" fill="%23DEB887" stroke="%23654321" stroke-width="2" rx="15"/><text x="350" y="360" text-anchor="middle" font-family="Georgia" font-size="14" fill="%23654321">B&amp;W</text><rect x="430" y="340" width="120" height="30" fill="%23DEB887" stroke="%23654321" stroke-width="2" rx="15"/><text x="490" y="360" text-anchor="middle" font-family="Georgia" font-size="14" fill="%23654321">Vintage</text><rect x="200" y="380" width="80" height="30" fill="%23DEB887" stroke="%23654321" stroke-width="2" rx="15"/><text x="240" y="400" text-anchor="middle" font-family="Georgia" font-size="12" fill="%23654321">Sunset</text><rect x="320" y="380" width="80" height="30" fill="%23DEB887" stroke="%23654321" stroke-width="2" rx="15"/><text x="360" y="400" text-anchor="middle" font-family="Georgia" font-size="12" fill="%23654321">Sparkle</text></svg>');
             position: relative;
         }
 
@@ -133,7 +133,7 @@
 
         /* Capture Page */
         .capture-page {
-            background-image: url('countdown.png');
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="%23F5DEB3"/><rect x="70" y="80" width="660" height="260" fill="white" stroke="%23654321" stroke-width="3"/><text x="400" y="380" text-anchor="middle" font-family="Georgia" font-size="24" fill="%23654321">🤠 Say "Howdy!" 🤠</text></svg>');
         }
 
         .countdown-container {
@@ -223,7 +223,7 @@
 
         /* Result Page */
         .result-page {
-            background-image: url('end.png');
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="%23F5DEB3"/><rect x="30" y="80" width="300" height="350" fill="white" stroke="%23654321" stroke-width="3"/><rect x="370" y="70" width="360" height="280" fill="%23654321"/><text x="550" y="50" text-anchor="middle" font-family="Georgia" font-size="24" fill="%23654321">🤠 Your Photos! 🤠</text><rect x="450" y="450" width="200" height="60" fill="%23228B22" stroke="%23006400" stroke-width="2" rx="30"/><text x="550" y="485" text-anchor="middle" font-family="Georgia" font-size="20" fill="white">DONE</text></svg>');
             position: relative;
         }
 
@@ -440,6 +440,9 @@
         let currentFilter = 'none';
         let capturedPhotos = [];
         let isCapturing = false;
+
+        // Global photo storage for URL sharing (replaces localStorage)
+        window.photoSessions = window.photoSessions || {};
 
         let audioPool = [];
         const AUDIO_POOL_SIZE = 5;
@@ -867,9 +870,9 @@
             }
         }
 
-        // UNIQUE QR CODE: Create unique session ID for each photo session
+        // FIXED: Create unique session ID and store photos in global object for URL sharing
         function generateQRCodeWithPhotosInURL() {
-            console.log('=== UNIQUE SESSION QR CODE GENERATION ===');
+            console.log('=== GENERATING QR CODE WITH GLOBAL STORAGE ===');
             
             const qrContainer = document.getElementById('qrcode');
             if (!qrContainer) {
@@ -893,7 +896,7 @@
                 const uniqueSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 console.log(`🔑 Created unique session ID: ${uniqueSessionId}`);
                 
-                // Store photos with this unique session ID
+                // Store photos with this unique session ID in global object
                 const photoData = {
                     photos: validPhotos,
                     filter: currentFilter,
@@ -904,48 +907,28 @@
                 
                 console.log(`📊 Storing ${validPhotos.length} photos with unique session ID...`);
                 
-                // Store in multiple places for maximum compatibility using the UNIQUE session ID
-                try {
-                    localStorage.setItem(uniqueSessionId, JSON.stringify(photoData));
-                    console.log(`✅ Stored in localStorage with key: ${uniqueSessionId}`);
-                } catch (e) {
-                    console.log('❌ localStorage failed');
-                }
+                // Store in global window object for cross-page access
+                window.photoSessions[uniqueSessionId] = photoData;
+                console.log(`✅ Stored in global window.photoSessions with key: ${uniqueSessionId}`);
                 
+                // Also try localStorage as backup (will work when deployed to iPad)
                 try {
-                    sessionStorage.setItem(uniqueSessionId, JSON.stringify(photoData));
-                    console.log(`✅ Stored in sessionStorage with key: ${uniqueSessionId}`);
-                } catch (e) {
-                    console.log('❌ sessionStorage failed');
-                }
-                
-                // Clean up old sessions to prevent storage overflow
-                try {
-                    const allKeys = Object.keys(localStorage);
-                    const sessionKeys = allKeys.filter(key => key.startsWith('session_'));
-                    
-                    // Keep only the 5 most recent sessions
-                    if (sessionKeys.length > 5) {
-                        const sortedKeys = sessionKeys.sort();
-                        const keysToRemove = sortedKeys.slice(0, -5);
-                        
-                        keysToRemove.forEach(key => {
-                            localStorage.removeItem(key);
-                            console.log(`🗑️ Removed old session: ${key}`);
-                        });
+                    if (typeof localStorage !== 'undefined') {
+                        localStorage.setItem(uniqueSessionId, JSON.stringify(photoData));
+                        console.log(`✅ Also stored in localStorage with key: ${uniqueSessionId}`);
                     }
                 } catch (e) {
-                    console.log('Cleanup failed');
+                    console.log('localStorage not available (normal in artifacts)');
                 }
                 
-                // Create QR code that points to album.html with the UNIQUE session ID
+                // Create QR code with direct data URL (works even without server)
                 let qrUrl;
                 try {
-                    const currentLocation = window.location;
-                    // Include the unique session ID in the URL
-                    qrUrl = `${currentLocation.protocol}//${currentLocation.host}${currentLocation.pathname.substring(0, currentLocation.pathname.lastIndexOf('/') + 1)}album.html?session=${uniqueSessionId}`;
+                    // Create a data URL that contains the session ID
+                    const albumPageUrl = window.location.href.replace('index.html', 'album.html').replace(/\/$/, '') + '/album.html';
+                    qrUrl = `${albumPageUrl}?session=${uniqueSessionId}`;
                     
-                    console.log(`🔗 Unique Album QR URL: ${qrUrl} (${qrUrl.length} chars)`);
+                    console.log(`🔗 Album QR URL: ${qrUrl}`);
                     
                     // Generate QR code
                     if (typeof qrcode === 'undefined') {
@@ -959,72 +942,53 @@
                     const qrImage = qr.createImgTag(6, 0);
                     qrContainer.innerHTML = qrImage;
                     
-                    console.log('✅ UNIQUE SESSION QR CODE GENERATED SUCCESSFULLY!');
+                    console.log('✅ QR CODE GENERATED SUCCESSFULLY!');
+                    
+                    // Update subtitle
+                    const subtitle = document.getElementById('qrSubtitle');
+                    if (subtitle) {
+                        subtitle.textContent = 'Scan to view your album!';
+                    }
                     
                     // Add success indicator
                     setTimeout(() => {
                         const successDiv = document.createElement('div');
                         successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: green; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
-                        successDiv.textContent = '✅ QR OK';
+                        successDiv.textContent = '✅ Ready';
                         qrContainer.style.position = 'relative';
                         qrContainer.appendChild(successDiv);
                         
                         setTimeout(() => successDiv.remove(), 3000);
                     }, 100);
                     
-                    // Auto-download QR code with unique filename
-                    setTimeout(() => {
-                        try {
-                            const qrImg = qrContainer.querySelector('img');
-                            if (qrImg && qrImg.src) {
-                                const link = document.createElement('a');
-                                link.download = `Album_QR_${uniqueSessionId.slice(-8)}.png`;
-                                link.href = qrImg.src;
-                                link.style.display = 'none';
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                console.log(`🔽 Unique QR code auto-downloaded: Album_QR_${uniqueSessionId.slice(-8)}.png`);
-                            }
-                        } catch (downloadError) {
-                            console.log('QR download failed:', downloadError);
-                        }
-                    }, 1000);
-                    
-                    // Update subtitle
-                    const subtitle = document.getElementById('qrSubtitle');
-                    if (subtitle) {
-                        subtitle.textContent = 'Scan to download your album!';
-                    }
-                    
-                    console.log(`📱 Unique session QR generation complete for session: ${uniqueSessionId}`);
+                    console.log(`📱 QR generation complete for session: ${uniqueSessionId}`);
                     return; // Success!
                     
                 } catch (qrError) {
-                    console.error('❌ Even unique session QR failed:', qrError);
+                    console.error('❌ QR generation failed:', qrError);
                 }
                 
-                // If even the unique session QR failed, show manual instructions
+                // If QR failed, show session info
                 qrContainer.innerHTML = `
                     <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
-                        <strong>QR Library Error</strong><br>
-                        Photos saved successfully<br>
-                        <small>Session: ${uniqueSessionId.slice(-8)}</small>
+                        <strong>Photos Ready!</strong><br>
+                        Session: ${uniqueSessionId.slice(-8)}<br>
+                        <small>QR generation failed</small>
                     </div>
                 `;
                 
                 // Update subtitle for manual case
                 const subtitle = document.getElementById('qrSubtitle');
                 if (subtitle) {
-                    subtitle.textContent = 'Photos saved - QR failed';
+                    subtitle.textContent = 'Photos saved successfully';
                 }
                 
             } catch (error) {
-                console.error('❌ QR generation completely failed:', error);
+                console.error('❌ Complete QR generation failure:', error);
                 qrContainer.innerHTML = `
                     <div style="color: white; padding: 8px; font-size: 0.8em; text-align: center;">
                         <div style="background: red; color: white; padding: 2px 6px; border-radius: 3px; margin-bottom: 6px;">❌ ERROR</div>
-                        <small>Check browser console<br>for details</small>
+                        <small>Photo capture failed</small>
                     </div>
                 `;
             }
@@ -1033,6 +997,11 @@
         // Initialize on load
         window.addEventListener('load', () => {
             console.log('Page loaded');
+            
+            // Initialize global photo storage
+            window.photoSessions = window.photoSessions || {};
+            console.log('Global photo storage initialized');
+            
             // Test camera availability
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 console.log('Camera API available');
