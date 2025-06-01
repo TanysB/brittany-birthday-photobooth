@@ -251,19 +251,32 @@
     <script>
         let photoData = [];
 
-        // Get photos from URL parameters (embedded in QR code)
+        // Get photos from URL parameters OR cloud links
         function loadPhotosFromURL() {
             console.log('🔍 Loading photos from URL parameters...');
             
             const urlParams = new URLSearchParams(window.location.search);
+            const type = urlParams.get('type');
             
-            // Check if we have photo data in URL
-            const photo1 = urlParams.get('p1');
-            const photo2 = urlParams.get('p2');
-            const photo3 = urlParams.get('p3');
+            if (type === 'cloud') {
+                return loadCloudPhotos(urlParams);
+            } else if (type === 'local') {
+                return loadLocalPhotos(urlParams);
+            } else {
+                // Try both methods
+                return loadCloudPhotos(urlParams) || loadLocalPhotos(urlParams);
+            }
+        }
+
+        function loadCloudPhotos(urlParams) {
+            console.log('☁️ Loading photos from cloud...');
+            
+            const photo1 = urlParams.get('photo1');
+            const photo2 = urlParams.get('photo2');
+            const photo3 = urlParams.get('photo3');
             const filter = urlParams.get('filter') || 'none';
             
-            console.log('📸 Found URL params:', {
+            console.log('📸 Found cloud photo URLs:', {
                 hasPhoto1: !!photo1,
                 hasPhoto2: !!photo2,
                 hasPhoto3: !!photo3,
@@ -271,42 +284,61 @@
             });
 
             if (!photo1 && !photo2 && !photo3) {
-                console.log('❌ No photo data in URL');
-                showError();
+                console.log('❌ No cloud photo URLs found');
                 return false;
             }
 
-            // Decode photos from URL
+            // Use direct URLs from cloud
             photoData = [];
-            if (photo1) {
-                try {
-                    photoData[0] = decodeURIComponent(photo1);
-                    console.log('✅ Photo 1 decoded');
-                } catch (e) {
-                    console.error('❌ Error decoding photo 1:', e);
-                }
-            }
-            
-            if (photo2) {
-                try {
-                    photoData[1] = decodeURIComponent(photo2);
-                    console.log('✅ Photo 2 decoded');
-                } catch (e) {
-                    console.error('❌ Error decoding photo 2:', e);
-                }
-            }
-            
-            if (photo3) {
-                try {
-                    photoData[2] = decodeURIComponent(photo3);
-                    console.log('✅ Photo 3 decoded');
-                } catch (e) {
-                    console.error('❌ Error decoding photo 3:', e);
-                }
-            }
+            if (photo1) photoData[0] = photo1;
+            if (photo2) photoData[1] = photo2;
+            if (photo3) photoData[2] = photo3;
 
             displayPhotos();
             return true;
+        }
+
+        function loadLocalPhotos(urlParams) {
+            console.log('📦 Loading photos from localStorage...');
+            
+            const sessionId = urlParams.get('session');
+            
+            if (!sessionId) {
+                console.log('❌ No session ID found');
+                return false;
+            }
+
+            // Try localStorage first
+            try {
+                const sessionData = localStorage.getItem(sessionId);
+                if (sessionData) {
+                    const parsed = JSON.parse(sessionData);
+                    if (parsed.photos && parsed.photos.length > 0) {
+                        photoData = parsed.photos;
+                        displayPhotos();
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.error('❌ localStorage error:', e);
+            }
+
+            // Try sessionStorage
+            try {
+                const sessionData = sessionStorage.getItem(sessionId);
+                if (sessionData) {
+                    const parsed = JSON.parse(sessionData);
+                    if (parsed.photos && parsed.photos.length > 0) {
+                        photoData = parsed.photos;
+                        displayPhotos();
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.error('❌ sessionStorage error:', e);
+            }
+
+            return false;
         }
 
         // Display photos in the album
@@ -455,7 +487,10 @@ The screenshot will be saved to your photos!
         // Initialize page
         window.addEventListener('load', () => {
             console.log('🎉 Album page loaded');
-            loadPhotosFromURL();
+            const success = loadPhotosFromURL();
+            if (!success) {
+                showError();
+            }
         });
     </script>
     
