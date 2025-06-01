@@ -459,7 +459,56 @@
                     audioInstances.push({
                         audio: audio,
                         inUse: false
-                    });
+                    }
+                
+                // Separate function to generate QR from URL
+                function generateQRFromUrl(url) {
+                    try {
+                        if (typeof qrcode === 'undefined') {
+                            throw new Error('QR code library not loaded');
+                        }
+                        
+                        console.log(`🔗 Generating QR for URL: ${url.length} chars`);
+                        
+                        const qr = qrcode(0, 'L'); // Low error correction for more data capacity
+                        qr.addData(url);
+                        qr.make();
+                        
+                        const qrImage = qr.createImgTag(4, 0);
+                        qrContainer.innerHTML = qrImage;
+                        
+                        console.log('✅ URL-BASED QR CODE GENERATED SUCCESSFULLY!');
+                        
+                        // Add success indicator
+                        setTimeout(() => {
+                            const successDiv = document.createElement('div');
+                            successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: green; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
+                            successDiv.textContent = '📱 MOBILE';
+                            qrContainer.style.position = 'relative';
+                            qrContainer.appendChild(successDiv);
+                            
+                            setTimeout(() => successDiv.remove(), 3000);
+                        }, 100);
+                        
+                        // Update subtitle
+                        const subtitle = document.getElementById('qrSubtitle');
+                        if (subtitle) {
+                            subtitle.textContent = 'Scan with your phone to view & save!';
+                        }
+                        
+                        console.log('📱 Mobile-friendly QR generation complete');
+                        
+                    } catch (qrError) {
+                        console.error('❌ QR generation failed:', qrError);
+                        qrContainer.innerHTML = `
+                            <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
+                                <strong>❌ QR Error</strong><br>
+                                ${qrError.message}<br>
+                                <small>URL: ${url.length} chars</small>
+                            </div>
+                        `;
+                    }
+                });
                 } catch (error) {
                     console.error('Audio creation failed:', error);
                 }
@@ -941,8 +990,8 @@
                         const img = new Image();
                         
                         img.onload = function() {
-                            // Make photos ultra-small for URL transmission
-                            const maxSize = 120; // Even smaller for QR code URLs
+                            // Make photos TINY for URL transmission
+                            const maxSize = 64; // Very tiny for QR codes
                             let { width, height } = this;
                             
                             // Calculate new dimensions
@@ -962,8 +1011,12 @@
                             canvas.height = height;
                             ctx.drawImage(this, 0, 0, width, height);
                             
-                            // Ultra-high compression for URL
-                            const compressedPhoto = canvas.toDataURL('image/jpeg', 0.15);
+                            // Maximum compression for URL
+                            const compressedPhoto = canvas.toDataURL('image/jpeg', 0.1);
+                            
+                            // Debug: Log photo size
+                            console.log(`Photo ${index + 1} compressed to ${compressedPhoto.length} chars`);
+                            
                             urlParams.set(`p${index + 1}`, encodeURIComponent(compressedPhoto));
                             
                             processedPhotos++;
@@ -992,63 +1045,34 @@
                     
                     console.log(`🔗 Shareable URL created (${finalUrl.length} chars)`);
                     
-                    // Check URL length (QR codes have practical limits)
-                    if (finalUrl.length > 2500) {
-                        console.warn('⚠️ URL might be too long for QR code');
+                    // Check URL length (QR codes have strict limits)
+                    if (finalUrl.length > 1500) {
+                        console.warn(`⚠️ URL too long: ${finalUrl.length} chars`);
+                        
+                        // Try with only first photo if URL is too long
+                        if (urlParams.has('p2')) {
+                            urlParams.delete('p2');
+                            urlParams.delete('p3');
+                            const shorterUrl = baseUrl + '?' + urlParams.toString();
+                            
+                            if (shorterUrl.length <= 1500) {
+                                console.log('✅ Using single photo for QR code');
+                                generateQRFromUrl(shorterUrl);
+                                return;
+                            }
+                        }
+                        
                         qrContainer.innerHTML = `
                             <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
-                                <strong>⚠️ Photos too large</strong><br>
-                                Try retaking with better lighting<br>
-                                <small>${finalUrl.length} chars (max ~2500)</small>
+                                <strong>⚠️ Photos too large for QR</strong><br>
+                                Try taking photos in better lighting<br>
+                                <small>${finalUrl.length} chars (max 1500)</small>
                             </div>
                         `;
                         return;
                     }
                     
-                    // Generate QR code
-                    try {
-                        if (typeof qrcode === 'undefined') {
-                            throw new Error('QR code library not loaded');
-                        }
-                        
-                        const qr = qrcode(0, 'L'); // Low error correction for more data capacity
-                        qr.addData(finalUrl);
-                        qr.make();
-                        
-                        const qrImage = qr.createImgTag(4, 0); // Smaller size for mobile scanning
-                        qrContainer.innerHTML = qrImage;
-                        
-                        console.log('✅ URL-BASED QR CODE GENERATED SUCCESSFULLY!');
-                        
-                        // Add success indicator
-                        setTimeout(() => {
-                            const successDiv = document.createElement('div');
-                            successDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; background: green; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.6em; z-index: 1000;';
-                            successDiv.textContent = '📱 MOBILE';
-                            qrContainer.style.position = 'relative';
-                            qrContainer.appendChild(successDiv);
-                            
-                            setTimeout(() => successDiv.remove(), 3000);
-                        }, 100);
-                        
-                        // Update subtitle
-                        const subtitle = document.getElementById('qrSubtitle');
-                        if (subtitle) {
-                            subtitle.textContent = 'Scan with your phone to view & save!';
-                        }
-                        
-                        console.log('📱 Mobile-friendly QR generation complete');
-                        
-                    } catch (qrError) {
-                        console.error('❌ QR generation failed:', qrError);
-                        qrContainer.innerHTML = `
-                            <div style="color: white; padding: 8px; font-size: 0.7em; text-align: center; line-height: 1.4;">
-                                <strong>❌ QR Error</strong><br>
-                                ${qrError.message}<br>
-                                <small>URL: ${finalUrl.length} chars</small>
-                            </div>
-                        `;
-                    }
+                    generateQRFromUrl(finalUrl);
                 }
                 
             } catch (error) {
